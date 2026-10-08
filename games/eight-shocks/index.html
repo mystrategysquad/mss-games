@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eight Shocks | My Strategy Squad</title>
+<!--
+  Eight Shocks: a game about stress-testing your plan.
+  My Strategy Squad, Episode 16. The five cushions are Episode 14's five ways to build resilience.
+  Same model and wording as the PICO-8 version.
+  Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME].
+  Code: MIT license. Art, sound and text: CC BY 4.0.
+  The My Strategy Squad name and logo are not covered by these licenses.
+-->
+<style>
+:root{--bg:#1d2b53;--panel:#14203f;--ink:#fff1e8;--dim:#c2c3c7;--gold:#ffec27;--good:#00e436;--bad:#ff6b6b;--blue:#29adff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 "Courier New",ui-monospace,monospace}
+body{padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+main{max-width:36rem;margin:0 auto;border:4px solid var(--ink);background:var(--panel);padding:16px}
+h1{font-size:1.5rem;margin:0 0 4px;color:var(--gold)}
+h2{font-size:1.15rem;margin:0 0 8px;color:var(--gold)}
+p{margin:6px 0}
+.dim{color:var(--dim)}.good{color:var(--good)}.bad{color:var(--bad)}.blue{color:var(--blue)}.gold{color:var(--gold)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.bar{display:flex;gap:3px}.bar i{width:18px;height:14px;border:2px solid var(--ink)}.bar i.on{background:var(--gold)}
+.area{border:2px dashed var(--blue);padding:8px;margin:8px 0}
+.card{border:2px solid var(--ink);padding:12px;margin:10px 0}
+button{font:inherit;color:var(--bg);background:var(--ink);border:3px solid var(--ink);padding:8px 14px;min-height:48px;min-width:48px;cursor:pointer}
+button:hover,button:focus-visible{background:var(--gold);border-color:var(--gold);outline:none}
+button:disabled{opacity:.4;cursor:default}
+.go{display:block;width:100%;margin-top:10px;font-weight:bold}
+ul,ol{margin:6px 0;padding-left:1.2rem}
+footer{max-width:36rem;margin:10px auto 0;font-size:.8rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"><noscript>This game needs JavaScript.</noscript></main>
+<footer>My Strategy Squad &middot; Strategy skills, without the suits. &middot; Episode 16: Stress-Test It in a Game<br>Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME]. Code: MIT. Art and text: CC BY 4.0.</footer>
+<script>
+// ---- core model (the same code was balance-tested in simulation) ----
+const G={pts:8,maxLvl:4,rounds:3,perRound:3,fixMoves:2,sevBase:10,bentGap:3};
+const AREAS=["Spread","Slack","Options","Response","Signals"];
+const AREA_HELP=["Don't depend on one thing","Spare cash and capacity","Short, reversible commitments","A written response, ready","Early warning signs"];
+const SHOCKS=[
+ {n:"A key person leaves",d:"Your best worker hands in notice.",w:[2,1,0,3,0]},
+ {n:"Your biggest customer or funder pulls out",d:"A third of your income goes in one phone call.",w:[3,1,0,1,1]},
+ {n:"Cash arrives late",d:"A big payment is ninety days overdue.",w:[0,3,1,1,1]},
+ {n:"Costs jump",d:"Your main supplier raises prices by a fifth.",w:[2,1,3,0,0]},
+ {n:"The ground shifts",d:"A rival changes the game, or a rule changes.",w:[0,0,2,1,3]},
+ {n:"Your reputation takes a hit",d:"A bad review spreads fast.",w:[1,0,0,3,2]},
+ {n:"Demand surges",d:"A great story doubles demand overnight.",w:[0,2,1,3,0]},
+ {n:"The wildcard",d:"Something nobody listed.",w:[1,2,2,0,1]}
+];
+function newGame(){return {lv:[0,0,0,0,0],pool:G.pts,moves:99,round:0,v:1,deck:[],idx:0,results:[],roundResults:[]}}
+function inc(S,i){if(S.pool>0&&S.lv[i]<G.maxLvl&&S.moves>0){S.lv[i]++;S.pool--;S.moves--;return true}return false}
+// in the fix step you may only lift a point you still have a move to re-place
+function canDec(S,i,fix){return S.lv[i]>0&&(!fix||S.pool<S.moves)}
+function dec(S,i,fix){if(canDec(S,i,fix)){S.lv[i]--;S.pool++;return true}return false}
+function shuffle(rng,a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function drawRound(rng,S){
+ // three distinct shocks; the wildcard is guaranteed by the last round
+ let ids=shuffle(rng,[0,1,2,3,4,5,6,7]).slice(0,G.perRound);
+ const seenWild=S.results.some(r=>r.id===7);
+ if(S.round===G.rounds-1&&!seenWild&&!ids.includes(7)){ids[G.perRound-1]=7}
+ S.round++;S.deck=ids;S.idx=0;S.roundResults=[];
+}
+function protection(S,sh){return S.lv.reduce((a,l,i)=>a+l*sh.w[i],0)}
+function resolve(rng,S){
+ const id=S.deck[S.idx],sh=SHOCKS[id],P=protection(S,sh);
+ const sev=G.sevBase+(id===7?1:0)+Math.floor(rng()*3)-1;
+ const out=P>=sev?"held":P>=sev-G.bentGap?"bent":"broke";
+ let best=0,bv=-1;S.lv.forEach((l,i)=>{const c=l*sh.w[i];if(c>bv){bv=c;best=i}});
+ const r={id,P,sev,out,best:bv>0?best:-1};
+ S.results.push(r);S.roundResults.push(r);return r;
+}
+const pts=o=>o==="held"?2:o==="bent"?1:0;
+const total=S=>S.results.reduce((a,r)=>a+pts(r.out),0);
+function startFix(S){S.moves=G.fixMoves;S.v++}
+
+// ---- screens ----
+const $=document.getElementById("app");
+let S=null,scr="title",last=null;
+function go(s){scr=s;draw();const h=$.querySelector("h2");if(h){h.setAttribute("tabindex","-1");h.focus({preventScroll:true})}window.scrollTo(0,0)}
+const cls=o=>o==="held"?"good":o==="bent"?"gold":"bad";
+const bar=n=>`<span class="bar" aria-hidden="true">${[1,2,3,4].map(k=>`<i class="${k<=n?"on":""}"></i>`).join("")}</span>`;
+
+function areas(fix){
+ return AREAS.map((a,i)=>`<div class="area"><div class="row"><span><b>${a}</b></span><span class="row">
+  <button data-a="d${i}" aria-label="Lower ${a}" ${canDec(S,i,fix)?"":"disabled"}>&minus;</button>${bar(S.lv[i])}
+  <button data-a="u${i}" aria-label="Raise ${a}" ${(S.pool===0||S.lv[i]>=G.maxLvl||S.moves<=0)?"disabled":""}>+</button></span></div>
+  <p class="dim">${AREA_HELP[i]}</p></div>`).join("");
+}
+
+function draw(){
+ if(scr==="title"){
+  $.innerHTML=`<h1>Eight Shocks</h1><p class="blue">A game about stress-testing your plan.</p>
+  <h2>How to play</h2>
+  <ul>
+  <li>You run a small outfit. Spread <b>${G.pts} points</b> across five cushions. No cushion can hold more than ${G.maxLvl}.</li>
+  <li>Then shocks hit, three at a time, in three rounds.</li>
+  <li>Each shock is <b class="good">held</b>, <b class="gold">bent</b>, or <b class="bad">broke</b>, depending on which cushions it needs.</li>
+  <li>After each round you get ${G.fixMoves} moves to fix your plan, and it becomes the next version.</li>
+  <li>No single cushion covers everything. There's always a wildcard.</li>
+  <li>The five cushions are Episode 14's five ways to build resilience.</li>
+  </ul>
+  <button class="go" data-a="start">Build your plan</button>`;
+ }else if(scr==="alloc"){
+  $.innerHTML=`<h2>Plan version ${S.v}</h2><p>Points left to place: <b class="gold">${S.pool}</b></p>${areas()}
+  <button class="go" data-a="begin" ${S.pool>0?"disabled":""}>Face the shocks</button>`;
+ }else if(scr==="shock"){
+  const sh=SHOCKS[S.deck[S.idx]];
+  $.innerHTML=`<div class="row"><span class="dim">Round ${S.round}/${G.rounds}</span><span class="dim">Shock ${S.idx+1}/${G.perRound}</span></div>
+  <div class="card"><h2>${sh.n}</h2><p>${sh.d}</p></div>
+  <button class="go" data-a="face">Face it</button>`;
+ }else if(scr==="result"){
+  const r=last,sh=SHOCKS[r.id];
+  $.innerHTML=`<h2>${sh.n}</h2><p class="${cls(r.out)}"><b>${r.out.toUpperCase()}</b></p>
+  <p>Your protection: ${r.P}. This shock needed about ${r.sev}.</p>
+  <p class="blue">${r.best>=0?"Helped most: "+AREAS[r.best]+".":"Nothing in your plan helped."}</p>
+  <button class="go" data-a="next">${S.idx+1<S.deck.length?"Next shock":S.round<G.rounds?"See this round":"See results"}</button>`;
+ }else if(scr==="round"){
+  $.innerHTML=`<h2>Round ${S.round} results</h2>
+  ${S.roundResults.map(r=>`<p>${SHOCKS[r.id].n}: <b class="${cls(r.out)}">${r.out}</b></p>`).join("")}
+  <p class="blue">Fix your thinnest cushion, not just the last shock. You have ${G.fixMoves} moves: take a point from one cushion and place it in another.</p>
+  <button class="go" data-a="fix">Fix your plan</button>`;
+ }else if(scr==="fix"){
+  $.innerHTML=`<h2>Plan version ${S.v}</h2><p>Moves left: <b class="gold">${S.moves}</b> &nbsp; Points to place: <b class="gold">${S.pool}</b></p>${areas(true)}
+  <button class="go" data-a="begin" ${S.pool>0?"disabled":""}>${S.pool>0?"Place the point you lifted":"Face the next round"}</button>`;
+ }else{
+  const t=total(S),k=S.results.filter(r=>r.out==="broke").length;
+  const low=S.lv.indexOf(Math.min(...S.lv));
+  $.innerHTML=`<h2>Results</h2><p>Score: <b class="gold">${t}/18</b> &nbsp; Broke: ${k}</p>
+  ${S.results.map(r=>`<p>${SHOCKS[r.id].n}: <b class="${cls(r.out)}">${r.out}</b></p>`).join("")}
+  <p class="blue">Your thinnest cushion was ${AREAS[low]}.</p>
+  <h2>Debrief</h2>
+  <ol><li>What did we expect?</li><li>What actually happened?</li><li>Why the gap?</li><li>What do we change?</li><li>What does this game get wrong about real life?</li></ol>
+  <p class="dim">Here the shocks come from a short list of eight. Real life adds ones nobody listed. Practice the response, not the prediction.</p>
+  <p>Take it home: draw three shocks for your own one-page plan. Mark each part held, bent, or broke. Fix the top one.</p>
+  <button class="go" data-a="again">Play again</button>`;
+ }
+}
+
+function act(a){
+ if(a==="start"){S=newGame();go("alloc")}
+ else if(/^u\d$/.test(a)){inc(S,+a[1]);draw()}
+ else if(/^d\d$/.test(a)){dec(S,+a[1],scr==="fix");draw()}
+ else if(a==="begin"&&S.pool===0){drawRound(Math.random,S);go("shock")}
+ else if(a==="face"){last=resolve(Math.random,S);go("result")}
+ else if(a==="next"){
+  if(S.idx+1<S.deck.length){S.idx++;go("shock")}
+  else if(S.round<G.rounds)go("round");else go("end")}
+ else if(a==="fix"){startFix(S);go("fix")}
+ else if(a==="again"){S=null;go("title")}
+}
+$.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(b&&!b.disabled)act(b.dataset.a)});
+draw();
+</script>
+</body>
+</html>

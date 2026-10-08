@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yes Machine | My Strategy Squad</title>
+<!--
+  Yes Machine: a game about the power of no.
+  My Strategy Squad, Episode 4. Same model and wording as the PICO-8 version.
+  Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME].
+  Code: MIT license. Art, sound and text: CC BY 4.0.
+  The My Strategy Squad name and logo are not covered by these licenses.
+-->
+<style>
+:root{--bg:#1d2b53;--panel:#14203f;--ink:#fff1e8;--dim:#c2c3c7;--gold:#ffec27;--good:#00e436;--bad:#ff6b6b;--blue:#29adff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 "Courier New",ui-monospace,monospace}
+body{padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+main{max-width:36rem;margin:0 auto;border:4px solid var(--ink);background:var(--panel);padding:16px}
+h1{font-size:1.5rem;margin:0 0 4px;color:var(--gold)}
+h2{font-size:1.15rem;margin:0 0 8px;color:var(--gold)}
+p{margin:6px 0}
+.dim{color:var(--dim)}.good{color:var(--good)}.bad{color:var(--bad)}.blue{color:var(--blue)}.gold{color:var(--gold)}
+.row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.bar{height:12px;border:2px solid var(--ink);margin:4px 0 10px}.bar i{display:block;height:100%;background:var(--gold)}
+.card{border:2px dashed var(--blue);padding:10px;margin:10px 0}
+.card.done{opacity:.65;border-style:solid}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button{font:inherit;color:var(--bg);background:var(--ink);border:3px solid var(--ink);padding:10px 14px;min-height:48px;cursor:pointer}
+button:hover,button:focus-visible{background:var(--gold);border-color:var(--gold);outline:none}
+button:disabled{opacity:.4;cursor:default}
+.go{display:block;width:100%;margin-top:10px;font-weight:bold}
+ul,ol{margin:6px 0;padding-left:1.2rem}
+footer{max-width:36rem;margin:10px auto 0;font-size:.8rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"><noscript>This game needs JavaScript.</noscript></main>
+<footer>My Strategy Squad &middot; Strategy skills, without the suits. &middot; Episode 4: The Power of No<br>Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME]. Code: MIT. Art and text: CC BY 4.0.</footer>
+<script>
+// ---- core model (the same code was balance-tested in simulation) ----
+const C={weeks:8,cap:10,k0:3,h0:10,nOffers:4,pay:0};
+const TYPES=["Older-home repairs","New installs","Emergency call-outs"];
+const NAMES=[
+ ["Leaky tap in a 1920s house","Rotten pipe under a kitchen","Old boiler valve seized"],
+ ["Bathroom for a new build","Six flats, bulk fit-out","Kitchen remodel"],
+ ["Burst pipe, Sunday morning","Night-time flood call","Blocked main drain"]
+];
+const capEff=S=>Math.max(4,C.cap-Math.floor((10-S.H)/2.5));
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const r5=x=>Math.round(x/5)*5;
+const pick=(rng,a)=>a[Math.floor(rng()*a.length)];
+function newState(focus){return {focus,wk:0,cash:0,K:C.k0,H:C.h0,credits:0,newCredits:0,used:0,onSlots:0,offSlots:0,redOff:0,offers:[],log:[]}}
+function makeOffers(rng,S){
+ const n=C.nOffers+Math.min(2,S.credits),offers=[];
+ for(let i=0;i<n;i++){
+  const on=i>=C.nOffers||rng()<0.25+0.05*S.K;
+  const type=on?S.focus:(S.focus+1+Math.floor(rng()*2))%3;
+  const slots=2+Math.floor(rng()*4);
+  const rate=on?r5(120+6*S.K+rng()*20):(rng()<0.25?r5(150+rng()*40):r5(85+rng()*45));
+  offers.push({type,on,slots,rate,name:pick(rng,NAMES[type]),choice:null});
+ }
+ return offers;
+}
+function startWeek(rng,S){S.wk++;S.used=0;S.onSlots=0;S.offSlots=0;S.redOff=0;S.newCredits=0;S.offers=makeOffers(rng,S)}
+function decide(S,i,choice){
+ const o=S.offers[i];o.choice=choice;
+ if(choice==="yes"){
+  const room=Math.max(0,capEff(S)-S.used),fit=Math.min(o.slots,room),over=o.slots-fit;
+  o.over=over;S.used+=o.slots;S.cash+=fit*o.rate-Math.round(over*o.rate*0.3);
+  if(o.on)S.onSlots+=o.slots;else S.offSlots+=o.slots}
+ else if(choice==="redirect"){S.newCredits+=1;if(!o.on)S.redOff+=1}
+}
+function closeWeek(S){
+ const over=Math.max(0,S.used-capEff(S));
+ S.H=clamp(S.H-over+(over===0?0.5:0),0,10);
+ S.K=clamp(S.K+0.5*S.onSlots-0.5*S.offSlots+0.25*S.redOff-0.25*over,0,10);
+ S.credits=S.newCredits;
+ S.log.push({wk:S.wk,used:S.used,over,K:S.K,H:S.H,cash:S.cash});
+}
+const score=S=>Math.round(S.cash+120*S.K+60*S.H);
+
+// ---- screens ----
+const $=document.getElementById("app");
+let S=null,scr="title";
+const sign=v=>(v>=0?"+":"")+(Math.round(v*10)/10);
+function go(s){scr=s;draw();const h=$.querySelector("h2");if(h){h.setAttribute("tabindex","-1");h.focus({preventScroll:true})}window.scrollTo(0,0)}
+function meter(label,v,cls){return `<div class="row"><span>${label}</span><span class="${cls}">${Math.round(v*10)/10}/10</span></div><div class="bar"><i style="width:${v*10}%"></i></div>`}
+
+function draw(){
+ if(scr==="title"){
+  $.innerHTML=`<h1>Yes Machine</h1><p class="blue">A game about the power of no.</p>
+  <h2>How to play</h2>
+  <ul>
+  <li>You run a small outfit. Each week you have about 10 slots of working time. The game lasts 8 weeks.</li>
+  <li>Choose what you want to be <b>known for</b>. That is your focus.</li>
+  <li>Each week, offers arrive. Say <b>Yes</b>, <b>No</b>, or <b>Redirect</b>: a polite no, with someone else's name to give them.</li>
+  <li>Work beyond your slots goes badly. You lose pay, energy, and reputation.</li>
+  <li>What you take on teaches people what you are for. It changes the offers you get next.</li>
+  </ul>
+  <h2>Pick your focus</h2>
+  ${TYPES.map((t,i)=>`<button class="go" data-a="f${i}">${t}</button>`).join("")}`;
+ }else if(scr==="week"){
+  const cap=capEff(S),used=S.used,done=S.offers.every(o=>o.choice);
+  $.innerHTML=`<div class="row"><span class="dim">Week ${S.wk}/${C.weeks}</span><span class="good">Cash $${S.cash}</span></div>
+  <h2>Focus: ${TYPES[S.focus]}</h2>
+  ${meter("Known for it",S.K,"gold")}${meter("Energy",S.H,"blue")}
+  <div class="row"><span>Slots used</span><span class="${used>cap?"bad":"gold"}">${used}/${cap}</span></div>
+  <div class="bar"><i style="width:${Math.min(100,used/cap*100)}%"></i></div>
+  ${S.offers.map((o,i)=>`<div class="card ${o.choice?"done":""}"><p><b>${o.name}</b></p>
+   <p class="${o.on?"good":"dim"}">${o.on?"On your focus":"Off your focus: "+TYPES[o.type]}</p>
+   <p>${o.slots} slots at $${o.rate} a slot = <b class="gold">$${o.slots*o.rate}</b></p>
+   ${o.choice?`<p class="blue">You said: ${o.choice}.</p>`:`<div class="btns">
+    <button data-a="y${i}" aria-label="Yes to ${o.name}">Yes</button>
+    <button data-a="n${i}" aria-label="No to ${o.name}">No</button>
+    <button data-a="r${i}" aria-label="Redirect ${o.name}">Redirect</button></div>`}</div>`).join("")}
+  ${S.wk===1?`<p class="dim">Tip: a Redirect is a no that keeps the door open. It can bring good work back.</p>`:""}
+  <button class="go" data-a="close" ${done?"":"disabled"}>Close the week</button>`;
+ }else if(scr==="wrap"){
+  const L=S.log[S.log.length-1],dK=S.K-S.pK,dH=S.H-S.pH;
+  $.innerHTML=`<h2>End of week ${S.wk}</h2>
+  <p>Slots used: ${L.used}${L.over?` (<span class="bad">${L.over} over</span>)`:""}</p>
+  <p>Known for it: ${Math.round(S.pK*10)/10} to ${Math.round(S.K*10)/10} <span class="${dK>=0?"good":"bad"}">(${sign(dK)})</span></p>
+  <p>Energy: ${Math.round(S.pH*10)/10} to ${Math.round(S.H*10)/10} <span class="${dH>=0?"good":"bad"}">(${sign(dH)})</span></p>
+  <p class="blue">${L.over?"You took on more than you could fit. Some pay was clawed back, and energy and reputation took the hit.":S.offSlots>S.onSlots?"Off-focus work is moving your reputation away from what you chose.":S.credits>0?"Your redirects may bring good work back next week.":"A steady week."}</p>
+  <p class="good">Cash $${S.cash}</p>
+  <button class="go" data-a="next">${S.wk>=C.weeks?"See results":"Next week"}</button>`;
+ }else{
+  const sc=score(S);
+  $.innerHTML=`<h2>Results</h2><p class="good">Cash $${S.cash}</p>
+  <p>Known for ${TYPES[S.focus]}: <b class="gold">${Math.round(S.K*10)/10}/10</b></p>
+  <p>Energy: <b class="blue">${Math.round(S.H*10)/10}/10</b></p>
+  <p>Score: <b class="gold">${sc}</b></p>
+  <p class="blue">${S.K>=8?"People know what you are for.":S.K<=4?"Your reputation drifted away from your focus.":"You are partly known for your focus."}</p>
+  <h2>Debrief</h2>
+  <ol><li>What did we expect?</li><li>What actually happened?</li><li>Why the gap?</li><li>What do we change?</li><li>What does this game get wrong about real life?</li></ol>
+  <p class="dim">In this game, offers come from a short list and the effects are predictable. Real life is messier, and saying no can cost relationships.</p>
+  <p>Take it home: write down three things you will say no to this month, and the sentence you would use for each. Then say each one out loud, once.</p>
+  <button class="go" data-a="again">Play again</button>`;
+ }
+}
+
+function act(a){
+ if(/^f\d$/.test(a)){S=newState(+a[1]);startWeek(Math.random,S);go("week")}
+ else if(/^[ynr]\d$/.test(a)&&scr==="week"){const i=+a[1];if(S.offers[i]&&!S.offers[i].choice){decide(S,i,{y:"yes",n:"no",r:"redirect"}[a[0]]);draw()}}
+ else if(a==="close"&&S.offers.every(o=>o.choice)){S.pK=S.K;S.pH=S.H;closeWeek(S);go("wrap")}
+ else if(a==="next"){if(S.wk>=C.weeks)go("end");else{startWeek(Math.random,S);go("week")}}
+ else if(a==="again"){S=null;go("title")}
+}
+$.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(b&&!b.disabled)act(b.dataset.a)});
+draw();
+</script>
+</body>
+</html>

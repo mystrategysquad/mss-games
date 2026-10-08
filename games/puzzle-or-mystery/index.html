@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Puzzle or Mystery? | My Strategy Squad</title>
+<!--
+  Puzzle or Mystery?: a game about sorting the problem before you solve it.
+  My Strategy Squad, Episode 5. Same model and wording as the PICO-8 version.
+  Puzzles and mysteries: an idea from John Kay and Mervyn King, Radical Uncertainty.
+  Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME].
+  Code: MIT license. Art, sound and text: CC BY 4.0.
+  The My Strategy Squad name and logo are not covered by these licenses.
+-->
+<style>
+:root{--bg:#1d2b53;--panel:#14203f;--ink:#fff1e8;--dim:#c2c3c7;--gold:#ffec27;--good:#00e436;--bad:#ff6b6b;--blue:#29adff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 "Courier New",ui-monospace,monospace}
+body{padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+main{max-width:36rem;margin:0 auto;border:4px solid var(--ink);background:var(--panel);padding:16px}
+h1{font-size:1.5rem;margin:0 0 4px;color:var(--gold)}
+h2{font-size:1.15rem;margin:0 0 8px;color:var(--gold)}
+p{margin:6px 0}
+.dim{color:var(--dim)}.good{color:var(--good)}.bad{color:var(--bad)}.blue{color:var(--blue)}.gold{color:var(--gold)}
+.row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card{border:2px solid var(--ink);padding:12px;margin:10px 0}
+.opts{display:flex;gap:10px;margin:10px 0}.opts div{flex:1;border:2px dashed var(--blue);padding:8px;text-align:center}
+.btns{display:flex;gap:10px}.btns button{flex:1}
+button{font:inherit;color:var(--bg);background:var(--ink);border:3px solid var(--ink);padding:10px 14px;min-height:48px;cursor:pointer}
+button:hover,button:focus-visible{background:var(--gold);border-color:var(--gold);outline:none}
+.go{display:block;width:100%;margin-top:10px;font-weight:bold}
+ul,ol{margin:6px 0;padding-left:1.2rem}
+footer{max-width:36rem;margin:10px auto 0;font-size:.8rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"><noscript>This game needs JavaScript.</noscript></main>
+<footer>My Strategy Squad &middot; Strategy skills, without the suits. &middot; Episode 5: Puzzle or Mystery?<br>Puzzles and mysteries: an idea from John Kay and Mervyn King, <i>Radical Uncertainty</i>.<br>Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME]. Code: MIT. Art and text: CC BY 4.0.</footer>
+<script>
+// ---- core model (the same code was balance-tested in simulation) ----
+const G={rounds:8,scoutCost:30,mNoise:1.2,sNoise:0.1,lo:100,hi:900,stakeM:1.5};
+// kind: "P" puzzle, "M" mystery. t = title, x = two text lines, c = cue line, a/b = option labels
+const SCEN=[
+ {k:"P",t:"supplier contract",x:["two suppliers, fixed prices.","which saves more this year?"],c:"terms are in the contract.",a:"supplier a",b:"supplier b"},
+ {k:"P",t:"six free days",x:["two jobs, known days and pay.","which one fits better?"],c:"hours and rates are agreed.",a:"job a",b:"job b"},
+ {k:"P",t:"lease or buy",x:["a new press: lease or buy?","all quotes are on the table."],c:"every cost is on the page.",a:"lease",b:"buy"},
+ {k:"P",t:"stock order",x:["bulk order or small order?","the discount table is fixed."],c:"the catalog sets the price.",a:"bulk",b:"small"},
+ {k:"P",t:"pay timing",x:["pay a bill now or in 30 days?","the late fee is stated."],c:"the rules are fixed.",a:"pay now",b:"pay later"},
+ {k:"P",t:"delivery route",x:["two routes to the same client.","maps and times are known."],c:"distances can be measured.",a:"route a",b:"route b"},
+ {k:"M",t:"a rival opens nearby",x:["will your customers stay?","nobody can say for sure."],c:"this has never happened.",a:"cut prices",b:"hold steady"},
+ {k:"M",t:"a new funder",x:["a funder you have not met","offers a grant with strings."],c:"how it will go is unclear.",a:"accept",b:"decline"},
+ {k:"M",t:"a new hire",x:["will this manager fit your","team and way of working?"],c:"people are hard to predict.",a:"hire now",b:"wait"},
+ {k:"M",t:"a rumored rule change",x:["a new rule may be coming.","no one knows what it says."],c:"the future is not written.",a:"prepare now",b:"wait and see"},
+ {k:"M",t:"a second site",x:["will a second site work?","you have no data yet."],c:"the numbers are guesses.",a:"open it",b:"stay put"},
+ {k:"M",t:"a new service",x:["will customers want it?","you can only guess."],c:"nobody has asked them yet.",a:"launch",b:"hold off"}
+];
+const r10=x=>Math.round(x/10)*10;
+function shuffle(rng,a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function newGame(rng){
+ const P=shuffle(rng,SCEN.filter(s=>s.k==="P")).slice(0,4),M=shuffle(rng,SCEN.filter(s=>s.k==="M")).slice(0,4);
+ const order=shuffle(rng,[...P,...M]);
+ return {i:0,total:0,right:0,rounds:order.map(s=>makeRound(rng,s)),hist:[]};
+}
+function makeRound(rng,s){
+ const k=s.k==="M"?G.stakeM:1,v=()=>r10((G.lo+rng()*(G.hi-G.lo))*k),VA=v(),VB=v();
+ const shown=V=>s.k==="P"?V:Math.max(10,r10(V*(1+(rng()*2-1)*G.mNoise)));
+ return {s,VA,VB,sa:shown(VA),sb:shown(VB)};
+}
+function play(rng,R,sort){
+ let cost=0,ea=R.sa,eb=R.sb;
+ if(sort==="M"){cost=G.scoutCost;if(R.s.k==="M"){ea=R.VA*(1+(rng()*2-1)*G.sNoise);eb=R.VB*(1+(rng()*2-1)*G.sNoise)}}
+ const pick=ea>=eb?"A":"B",val=pick==="A"?R.VA:R.VB,best=Math.max(R.VA,R.VB);
+ return {sort,right:sort===R.s.k,pick,cost,payoff:val-cost,best,ea:Math.round(ea),eb:Math.round(eb)};
+}
+
+// ---- screens ----
+const $=document.getElementById("app");
+let S=null,scr="title",res=null;
+const kind=k=>k==="P"?"puzzle":"mystery";
+function go(s){scr=s;draw();const h=$.querySelector("h2");if(h){h.setAttribute("tabindex","-1");h.focus({preventScroll:true})}window.scrollTo(0,0)}
+
+function draw(){
+ if(scr==="title"){
+  $.innerHTML=`<h1>Puzzle or Mystery?</h1><p class="blue">A game about sorting the problem before you solve it.</p>
+  <h2>How to play</h2>
+  <ul>
+  <li>Eight decisions arrive. Each has two options and an estimated payoff.</li>
+  <li>Sort each one: <b>puzzle</b> or <b>mystery</b>. Ask: can I list everything that could happen, and put sensible odds on it?</li>
+  <li>Call it a puzzle and you <b>calculate</b>: you take the option that looks best on the page. It's free.</li>
+  <li>Call it a mystery and you <b>scout</b>: you pay $${G.scoutCost} for a closer look before you choose.</li>
+  <li>In a puzzle the numbers are exact. In a mystery they are only guesses.</li>
+  <li>Four puzzles and four mysteries, in a random order.</li>
+  <li>Computer: left arrow for puzzle, right arrow for mystery.</li>
+  </ul>
+  <button class="go" data-a="start">Start</button>`;
+ }else if(scr==="round"){
+  const R=S.rounds[S.i],s=R.s;
+  $.innerHTML=`<div class="row"><span class="dim">Decision ${S.i+1}/${G.rounds}</span><span class="good">Score $${S.total}</span></div>
+  <div class="card"><h2>${s.t}</h2><p>${s.x[0]}<br>${s.x[1]}</p><p class="blue">${s.c}</p></div>
+  <div class="opts"><div><b>${s.a}</b><br><span class="gold">$${R.sa}</span></div><div><b>${s.b}</b><br><span class="gold">$${R.sb}</span></div></div>
+  <p class="dim">Can I list everything that could happen, and put sensible odds on it?</p>
+  <div class="btns"><button data-a="P">Puzzle: calculate</button><button data-a="M">Mystery: scout ($${G.scoutCost})</button></div>`;
+ }else if(scr==="result"){
+  const R=S.rounds[S.i],s=R.s,r=res,pickLabel=r.pick==="A"?s.a:s.b;
+  const gotBest=r.payoff+r.cost===r.best;
+  const msg=s.k==="P"?(r.sort==="P"?"The numbers were exact. Calculating was the right call.":`The numbers were exact. Scouting cost you $${G.scoutCost} for nothing.`)
+   :(r.sort==="M"?(gotBest?"The numbers were only guesses. Scouting was the right call.":"Scouting was the right call, but it only shrinks a mystery. This one still fooled you.")
+   :(gotBest?"You got lucky. The numbers were only guesses.":"The numbers were only guesses, and they misled you."));
+  $.innerHTML=`<h2>${s.t}</h2><p>It was a <b class="blue">${kind(s.k)}</b>. You called it a ${kind(r.sort)}: <b class="${r.right?"good":"bad"}">${r.right?"right":"wrong"}</b>.</p>
+  <p>${r.sort==="P"?"You calculated.":`You scouted (-$${G.scoutCost}).`} You chose <b>${pickLabel}</b>.</p>
+  <p class="dim">Actual values: ${s.a} $${R.VA}, ${s.b} $${R.VB}</p>
+  <p>Payoff: <b class="gold">$${r.payoff}</b> (best possible $${r.best})</p><p class="blue">${msg}</p>
+  <button class="go" data-a="next">${S.i+1<G.rounds?"Next decision":"See results"}</button>`;
+ }else{
+  const best=S.hist.reduce((a,h)=>a+h.best,0),n=S.right;
+  $.innerHTML=`<h2>Results</h2><p>Total payoff: <b class="gold">$${S.total}</b></p><p>Best possible: $${best}. Left on the table: <b class="bad">$${best-S.total}</b></p>
+  <p>Sorted right: <b class="good">${n}/${G.rounds}</b></p>
+  <p class="blue">${n>=7?"You read the cues well.":n>=5?"You read most of the cues.":"The cues are easy to miss. That's the point."}</p>
+  <h2>Debrief</h2>
+  <ol><li>What did we expect?</li><li>What actually happened?</li><li>Why the gap?</li><li>What do we change?</li><li>What does this game get wrong about real life?</li></ol>
+  <p>One more: what would you do in a mystery you couldn't pay to scout?</p>
+  <p class="dim">In the game, a small fee reveals a lot. In real life, scouting only shrinks a mystery, and some never clear up.</p>
+  <p>Take it home: sort five real decisions this month, puzzle or mystery. For each mystery, name one cheap thing to learn first.</p>
+  <button class="go" data-a="again">Play again</button>`;
+ }
+}
+
+function act(a){
+ if(a==="start"){S=newGame(Math.random);go("round")}
+ else if((a==="P"||a==="M")&&scr==="round"){
+  res=play(Math.random,S.rounds[S.i],a);S.total+=res.payoff;if(res.right)S.right++;S.hist.push(res);go("result")}
+ else if(a==="next"){S.i++;if(S.i<G.rounds)go("round");else go("end")}
+ else if(a==="again"){S=null;go("title")}
+}
+document.addEventListener("keydown",e=>{if(scr==="round"){if(e.key==="ArrowLeft"){e.preventDefault();act("P")}if(e.key==="ArrowRight"){e.preventDefault();act("M")}}});
+$.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(b&&!b.disabled)act(b.dataset.a)});
+draw();
+</script>
+</body>
+</html>

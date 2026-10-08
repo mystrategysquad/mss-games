@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Squad | My Strategy Squad</title>
+<!--
+  The Squad: a game about asking the right people before a big call.
+  My Strategy Squad, Episode 9: Before the Big Call. Same model and wording as the PICO-8 version.
+  Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME].
+  Code: MIT license. Art, sound and text: CC BY 4.0.
+  The My Strategy Squad name and logo are not covered by these licenses.
+-->
+<style>
+:root{--bg:#1d2b53;--panel:#14203f;--ink:#fff1e8;--dim:#c2c3c7;--gold:#ffec27;--good:#00e436;--bad:#ff6b6b;--blue:#29adff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 "Courier New",ui-monospace,monospace}
+body{padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+main{max-width:38rem;margin:0 auto;border:4px solid var(--ink);background:var(--panel);padding:16px}
+h1{font-size:1.5rem;margin:0 0 4px;color:var(--gold)}
+h2{font-size:1.15rem;margin:0 0 8px;color:var(--gold)}
+p{margin:6px 0}
+.dim{color:var(--dim)}.good{color:var(--good)}.bad{color:var(--bad)}.blue{color:var(--blue)}.gold{color:var(--gold)}
+.row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card{border:2px solid var(--ink);padding:12px;margin:10px 0}
+.adv{display:flex;justify-content:space-between;align-items:center;gap:8px;border:2px dashed var(--blue);padding:6px 8px;margin:6px 0}
+button{font:inherit;color:var(--bg);background:var(--ink);border:3px solid var(--ink);padding:8px 12px;min-height:48px;cursor:pointer}
+button:hover,button:focus-visible{background:var(--gold);border-color:var(--gold);outline:none}
+button:disabled{opacity:.4;cursor:default}
+.go{display:block;width:100%;margin-top:10px;font-weight:bold}
+.btns{display:flex;gap:10px}.btns button{flex:1;font-weight:bold}
+ul,ol{margin:6px 0;padding-left:1.2rem}
+footer{max-width:38rem;margin:10px auto 0;font-size:.8rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"><noscript>This game needs JavaScript.</noscript></main>
+<footer>My Strategy Squad &middot; Strategy skills, without the suits. &middot; Episode 9: Before the Big Call<br>Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME]. Code: MIT. Art and text: CC BY 4.0.</footer>
+<script>
+// ---- core model (the same code was balance-tested in simulation) ----
+const G={rounds:8,favors:10,perDecision:2,pGoGood:0.8,pGoBad:0.6,pay:{goodGo:100,goodNo:-30,badGo:-100,badNo:20}};
+const ADV=[
+ {n:"Pat",role:"always upbeat",say:(good,topic,rng)=>rng()<0.9},
+ {n:"Dee",role:"always careful",say:(good,topic,rng)=>rng()<0.2},
+ {n:"Clive",role:"blunt and fair",say:(good,topic,rng)=>rng()<0.8?good:!good},
+ {n:"Lee",role:"the accountant",say:(good,topic,rng)=>{const acc=topic==="money"?0.9:0.55;return rng()<acc?good:!good}}
+];
+const DEC=[
+ ["take a bank loan","money"],["buy the bigger press","money"],["raise your prices","money"],["pay for a big ad push","money"],
+ ["hire a manager","people"],["promote your best worker","people"],["bring on a partner","people"],["let a difficult client go","people"],
+ ["open a second site","market"],["launch a new service","market"],["enter a new town","market"],
+ ["sign the long lease","rules"],["take the grant with strings","rules"],["change your legal setup","rules"]
+];
+function shuffle(rng,a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function newGame(rng){
+ const rounds=shuffle(rng,DEC).slice(0,G.rounds).map(([t,topic])=>{
+  const good=rng()<0.5;
+  const gut=rng()<(good?G.pGoGood:G.pGoBad);
+  return {t,topic,good,gut,asked:{}};
+ });
+ return {i:0,favors:G.favors,total:0,best:0,rounds,rec:ADV.map(()=>({asked:0,right:0})),hist:[]};
+}
+function ask(rng,S,a){
+ const R=S.rounds[S.i];
+ if(S.favors<=0||R.asked[a]!==undefined||Object.keys(R.asked).length>=G.perDecision)return null;
+ const v=ADV[a].say(R.good,R.topic,rng);R.asked[a]=v;S.favors--;return v;
+}
+function decide(S,go){
+ const R=S.rounds[S.i],P=G.pay;
+ const pay=R.good?(go?P.goodGo:P.goodNo):(go?P.badGo:P.badNo);
+ const best=R.good?P.goodGo:P.badNo;
+ Object.entries(R.asked).forEach(([a,v])=>{S.rec[a].asked++;if(v===R.good)S.rec[a].right++});
+ S.total+=pay;S.best+=best;S.hist.push({go,pay,best});return pay;
+}
+
+// ---- screens ----
+const $=document.getElementById("app");
+let S=null,scr="title",last=null;
+const m=v=>(v<0?"-$":"+$")+Math.abs(v);
+const money=v=>(v<0?"-$":"$")+Math.abs(v);
+function go(s){scr=s;draw();const h=$.querySelector("h2");if(h){h.setAttribute("tabindex","-1");h.focus({preventScroll:true})}window.scrollTo(0,0)}
+const word=v=>v?"GO":"NO";
+
+function draw(){
+ if(scr==="title"){
+  $.innerHTML=`<h1>The Squad</h1><p class="blue">A game about asking the right people before a big call.</p>
+  <h2>How to play</h2>
+  <ul>
+  <li>Eight big decisions arrive. Each is secretly a good idea or a bad one.</li>
+  <li>Your own gut says <b>go</b> or <b>no</b>. It leans optimistic.</li>
+  <li>You have ${G.favors} favors. Ask up to ${G.perDecision} advisers on each decision. They give a second opinion: go or no.</li>
+  <li>Then you decide. A good idea you take earns $${G.pay.goodGo}. A bad one you take costs $${-G.pay.badGo}. Turning down a good idea loses $${-G.pay.goodNo}. Turning down a bad one saves $${G.pay.badNo}.</li>
+  <li>The advisers have personalities. Watch their track records.</li>
+  <li>Computer: left arrow for no-go, right arrow for go.</li>
+  </ul>
+  <button class="go" data-a="start">Start</button>`;
+ }else if(scr==="round"){
+  const R=S.rounds[S.i],n=Object.keys(R.asked).length;
+  $.innerHTML=`<div class="row"><span class="dim">Decision ${S.i+1}/${G.rounds}</span><span class="gold">Favors left: ${S.favors}</span><span class="good">Score ${money(S.total)}</span></div>
+  <div class="card"><h2>${R.t}</h2><p class="dim">Topic: ${R.topic}</p><p>Your gut says: <b class="gold">${word(R.gut)}</b></p></div>
+  ${ADV.map((a,i)=>{const v=R.asked[i],rec=S.rec[i];return `<div class="adv"><span><b>${a.n}</b> <span class="dim">${a.role}</span><br><span class="dim">Record: ${rec.asked?rec.right+" right of "+rec.asked:"no record yet"}</span></span>
+   ${v!==undefined?`<b class="blue">says ${word(v)}</b>`:`<button data-a="a${i}" aria-label="Ask ${a.n}" ${(S.favors<=0||n>=G.perDecision)?"disabled":""}>Ask</button>`}</div>`}).join("")}
+  <div class="btns"><button data-a="no">No-go</button><button data-a="go">Go</button></div>`;
+ }else if(scr==="result"){
+  const R=S.rounds[S.i];
+  $.innerHTML=`<h2>${R.t}</h2><p>It was a <b class="${R.good?"good":"bad"}">${R.good?"good":"bad"} idea</b>. You said <b>${last.go?"go":"no-go"}</b>.</p>
+  <p>Payoff: <b class="${last.pay<0?"bad":"good"}">${m(last.pay)}</b> (best possible ${m(last.best)})</p>
+  ${Object.keys(R.asked).length?Object.entries(R.asked).map(([a,v])=>`<p class="dim">${ADV[a].n} said ${word(v)}: ${v===R.good?"right":"wrong"}</p>`).join(""):`<p class="dim">You asked no one.</p>`}
+  <button class="go" data-a="next">${S.i+1<G.rounds?"Next decision":"See results"}</button>`;
+ }else{
+  $.innerHTML=`<h2>Results</h2><p>Total: <b class="${S.total<0?"bad":"gold"}">${money(S.total)}</b>. Best possible: ${money(S.best)}. Left on the table: <b class="bad">${money(S.best-S.total)}</b>.</p>
+  <h2>Track records</h2>
+  ${ADV.map((a,i)=>`<p><b>${a.n}</b>: right ${S.rec[i].right} of ${S.rec[i].asked} asked</p>`).join("")}
+  <h2>Who they really were</h2>
+  <p class="dim">Pat said go nine times in ten, whatever the truth. Dee said no eight times in ten. Clive was right about eight in ten. Lee was right about nine in ten on money and barely better than a coin elsewhere.</p>
+  <h2>Debrief</h2>
+  <ol><li>What did we expect?</li><li>What actually happened?</li><li>Why the gap?</li><li>What do we change?</li><li>What does this game get wrong about real life?</li></ol>
+  <p>One more: who would you ask in real life, someone with nothing to gain who will disagree?</p>
+  <p class="dim">Here the advisers have fixed personalities and a clear track record. In real life, people change, and their record takes time to see.</p>
+  <p>Take it home: pick one big call this month. Ask someone with nothing to gain, who will disagree. Write down what they said.</p>
+  <button class="go" data-a="again">Play again</button>`;
+ }
+}
+
+function act(a){
+ if(a==="start"){S=newGame(Math.random);go("round")}
+ else if(/^a\d$/.test(a)){ask(Math.random,S,+a[1]);draw()}
+ else if((a==="go"||a==="no")&&scr==="round"){const pay=decide(S,a==="go");last={go:a==="go",pay,best:S.hist[S.hist.length-1].best};go("result")}
+ else if(a==="next"){S.i++;if(S.i<G.rounds)go("round");else go("end")}
+ else if(a==="again"){S=null;go("title")}
+}
+document.addEventListener("keydown",e=>{if(scr==="round"){if(e.key==="ArrowLeft"){e.preventDefault();act("no")}if(e.key==="ArrowRight"){e.preventDefault();act("go")}}});
+$.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(b&&!b.disabled)act(b.dataset.a)});
+draw();
+</script>
+</body>
+</html>

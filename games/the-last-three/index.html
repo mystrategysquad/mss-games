@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Last Three | My Strategy Squad</title>
+<!--
+  The Last Three: a game about the inside view.
+  My Strategy Squad, Episode 6. Same numbers and wording as the PICO-8 and Python versions.
+  Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME].
+  Code: MIT license. Art, sound and text: CC BY 4.0.
+  The My Strategy Squad name and logo are not covered by these licenses.
+-->
+<style>
+:root{--bg:#1d2b53;--panel:#14203f;--ink:#fff1e8;--dim:#c2c3c7;--gold:#ffec27;--good:#00e436;--bad:#ff6b6b;--blue:#29adff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 "Courier New",ui-monospace,monospace}
+body{padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+main{max-width:34rem;margin:0 auto;border:4px solid var(--ink);background:var(--panel);padding:16px}
+h1{font-size:1.5rem;margin:0 0 4px;color:var(--gold)}
+h2{font-size:1.15rem;margin:0 0 8px;color:var(--gold)}
+p{margin:6px 0}
+.dim{color:var(--dim)}.good{color:var(--good)}.bad{color:var(--bad)}.blue{color:var(--blue)}.gold{color:var(--gold)}
+.row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.log{border:2px dashed var(--blue);padding:8px;margin:10px 0}
+.quote{display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0}
+.quote output{font-size:1.6rem;min-width:7ch;text-align:center;color:var(--gold)}
+button{font:inherit;color:var(--bg);background:var(--ink);border:3px solid var(--ink);padding:10px 16px;min-height:48px;cursor:pointer}
+button:hover,button:focus-visible{background:var(--gold);border-color:var(--gold);outline:none}
+button.step{min-width:56px;font-size:1.4rem}
+.go{display:block;width:100%;margin-top:10px;font-weight:bold}
+ul{margin:6px 0;padding-left:1.2rem}
+footer{max-width:34rem;margin:10px auto 0;font-size:.8rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"><noscript>This game needs JavaScript.</noscript></main>
+<footer>My Strategy Squad &middot; Strategy skills, without the suits. &middot; Episode 6: The Inside View<br>Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME]. Code: MIT. Art and text: CC BY 4.0.</footer>
+<script>
+// ---- tuning (same numbers as the Python and PICO-8 versions) ----
+const C={rounds:10,logFrom:4,pay:130,cost:100,lo:0.9,hi:1.6,disP:0.1,disD:2};
+const JOBS=[
+ {n:"tap repair",b:2,s:0.5,p:[0.5,0.4,0.3],e:["seized fitting","part on back-order","second leak found"]},
+ {n:"water heater",b:3,s:1,p:[0.35,0.3,0.2],e:["old valve seized","permit delay","wrong size sent"]},
+ {n:"bathroom",b:5,s:1.5,p:[0.5,0.4,0.3],e:["rot behind the wall","late tiles","client changed their mind"]}
+];
+const r5=x=>Math.floor(x*2+0.5)/2;
+const pc=r=>{const v=Math.floor((r-1)*100+0.5);return (v>=0?"+":"")+v+"%"};
+const money=v=>(v<0?"-$":"$")+Math.abs(v);
+const $=document.getElementById("app");
+let S,scr="title";
+
+function newGame(){S={rd:0,cash:0,wins:0,hist:[],qs:[],ps:[],cur:null};nextRound()}
+function nextRound(){
+ S.rd++;
+ const job=JOBS[Math.floor(Math.random()*JOBS.length)],plan=job.b;
+ let extra=0;const ev=[];
+ job.p.forEach((p,i)=>{if(Math.random()<p){extra+=job.s;ev.push(job.e[i])}});
+ if(Math.random()<C.disP){extra+=C.disD;ev.push("everything went wrong")}
+ S.cur={job,plan,riv:plan*(C.lo+Math.random()*(C.hi-C.lo)),actual:plan+extra,ev,q:plan,won:false,profit:0};
+ go("quote");
+}
+function send(){
+ const c=S.cur;
+ c.won=c.q<=c.riv;
+ c.profit=c.won?C.pay*c.q-C.cost*c.actual:0;
+ if(c.won){S.cash+=c.profit;S.wins++}
+ S.qs.push(c.q);S.ps.push(c.plan);S.hist.push([c.plan,c.actual]);
+ go("result");
+}
+function go(s){scr=s;draw();const h=$.querySelector("h2");if(h){h.setAttribute("tabindex","-1");h.focus({preventScroll:true})}window.scrollTo(0,0)}
+
+function draw(){
+ const c=S&&S.cur;
+ if(scr==="title"){
+  $.innerHTML=`<h1>The Last Three</h1><p class="blue">A game about the inside view.</p>
+  <h2>How to play</h2>
+  <ul>
+  <li>Finish ten jobs with as much cash as you can.</li>
+  <li>Each job has a <b>plan</b>: the days it takes if everything goes well.</li>
+  <li>You give an <b>estimate</b> in days. Your <b>quote</b> is that many days at $130 a day.</li>
+  <li>The lowest quote wins the job.</li>
+  <li>If you win, every day the job really takes costs you $100.</li>
+  <li>Jobs 1 to 3: you only have your plan. From job 4, you see the last three jobs in town.</li>
+  <li>Phone: tap &minus; and +. Computer: left and right arrows change your estimate by half a day, up and down by a whole day.</li>
+  </ul>
+  <p class="dim">About five minutes.</p>
+  <button class="go" data-a="start">Start</button>`;
+ }else if(scr==="quote"){
+  let log;
+  if(S.rd>=C.logFrom){
+   const l=S.hist.slice(-3),tp=l.reduce((a,x)=>a+x[0],0),ta=l.reduce((a,x)=>a+x[1],0);
+   log=`<div class="log"><p class="blue">The last three jobs in town:</p>`+
+    l.map(x=>`<p>plan ${x[0]}, took ${x[1]} <span class="gold">(${pc(x[1]/x[0])})</span></p>`).join("")+
+    `<p>Together: <span class="gold">${pc(ta/tp)}</span></p></div>`;
+  }else log=`<div class="log"><p class="dim">No record yet. You only have your own plan.</p></div>`;
+  $.innerHTML=`<div class="row"><span class="dim">Job ${S.rd}/${C.rounds}</span><span class="good">Cash ${money(S.cash)}</span></div>
+  <h2>${c.job.n}</h2><p>If all goes well: <b>${c.plan} days</b></p><p class="dim">You charge $130 a day. The lowest quote wins.</p>${log}
+  <p class="dim" style="text-align:center;margin-bottom:0">Your estimate</p>
+  <div class="quote"><button class="step" data-a="dn" aria-label="Lower estimate by half a day">&minus;</button>
+  <output aria-label="Your estimate in days">${c.q} days</output>
+  <button class="step" data-a="up" aria-label="Raise estimate by half a day">+</button></div>
+  <p style="text-align:center">Your quote: <b class="gold">$${C.pay*c.q}</b></p>
+  <button class="go" data-a="send">Send quote</button>`;
+ }else if(scr==="result"){
+  $.innerHTML=`<div class="row"><span class="dim">Job ${S.rd}/${C.rounds}: ${c.job.n}</span><span class="good">Cash ${money(S.cash)}</span></div>
+  <h2 class="${c.won?"good":"bad"}">${c.won?"You won the job.":"A rival took it."}</h2>
+  <p>Plan: ${c.plan} days<br>Your estimate: ${c.q} days (quote $${C.pay*c.q})<br>Rival's quote: $${Math.floor(c.riv*C.pay)}<br>It took: <b class="gold">${c.actual} days</b></p>
+  <ul>${(c.ev.length?c.ev:["nothing went wrong"]).map(e=>`<li>${e}</li>`).join("")}</ul>
+  <p class="${c.profit<0?"bad":c.won?"good":"dim"}">${c.won?"Profit: "+money(c.profit):"No profit, no loss."}</p>
+  <button class="go" data-a="next">${S.rd>=C.rounds?"See results":"Next job"}</button>`;
+ }else if(scr==="sum"){
+  const tp=S.hist.reduce((a,x)=>a+x[0],0),ta=S.hist.reduce((a,x)=>a+x[1],0),k=C.logFrom-1;
+  const sum=a=>a.reduce((x,y)=>x+y,0);
+  const early=sum(S.qs.slice(0,k))/sum(S.ps.slice(0,k)),late=sum(S.qs.slice(k))/sum(S.ps.slice(k));
+  $.innerHTML=`<h2>Results</h2><p class="good">Cash ${money(S.cash)}</p><p>Jobs won: ${S.wins}/${C.rounds}</p>
+  <p>Jobs ran <b class="gold">${pc(ta/tp)}</b> over plan on average.</p>
+  <p>Jobs 1&ndash;${k}: you estimated ${pc(early)} versus plan.<br>Jobs ${C.logFrom}&ndash;${C.rounds}: you estimated ${pc(late)} versus plan.</p>
+  <p class="blue">${late-early>=0.1?"The log moved your estimates.":"Your estimates barely moved. Did you read the last three?"}</p>
+  <button class="go" data-a="deb">Debrief</button>`;
+ }else{
+  $.innerHTML=`<h2>Debrief</h2><ol><li>What did we expect?</li><li>What actually happened?</li><li>Why the gap?</li><li>What do we change?</li><li>What does this game get wrong about real life?</li></ol>
+  <p class="dim">In this game the delays come from a short list. Real life has surprises nobody listed.</p>
+  <p>Next time you estimate something, write your guess down first. Then write the real number.</p>
+  <button class="go" data-a="start">Play again</button>`;
+ }
+}
+
+function act(a){
+ const c=S&&S.cur;
+ if(a==="start")newGame();
+ else if(a==="up"&&scr==="quote"){c.q=Math.min(20,c.q+0.5);draw();focusQ()}
+ else if(a==="dn"&&scr==="quote"){c.q=Math.max(0.5,c.q-0.5);draw();focusQ()}
+ else if(a==="up1"&&scr==="quote"){c.q=Math.min(20,c.q+1);draw();focusQ()}
+ else if(a==="dn1"&&scr==="quote"){c.q=Math.max(0.5,c.q-1);draw();focusQ()}
+ else if(a==="send")send();
+ else if(a==="next"){S.rd>=C.rounds?go("sum"):nextRound()}
+ else if(a==="deb")go("deb");
+}
+function focusQ(){const b=$.querySelector('[data-a="send"]');if(b)b.focus({preventScroll:true})}
+$.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(b)act(b.dataset.a)});
+document.addEventListener("keydown",e=>{
+ if(scr==="quote"){if(e.key==="ArrowRight"){e.preventDefault();act("up")}
+  if(e.key==="ArrowLeft"){e.preventDefault();act("dn")}
+  if(e.key==="ArrowUp"){e.preventDefault();act("up1")}
+  if(e.key==="ArrowDown"){e.preventDefault();act("dn1")}}
+});
+draw();
+</script>
+</body>
+</html>

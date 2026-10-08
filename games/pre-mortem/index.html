@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pre-Mortem | My Strategy Squad</title>
+<!--
+  Pre-Mortem: a game about imagining failure before it happens.
+  My Strategy Squad, Episode 7. Same model and wording as the PICO-8 version.
+  The pre-mortem is Gary Klein's technique.
+  Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME].
+  Code: MIT license. Art, sound and text: CC BY 4.0.
+  The My Strategy Squad name and logo are not covered by these licenses.
+-->
+<style>
+:root{--bg:#1d2b53;--panel:#14203f;--ink:#fff1e8;--dim:#c2c3c7;--gold:#ffec27;--good:#00e436;--bad:#ff6b6b;--blue:#29adff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.45 "Courier New",ui-monospace,monospace}
+body{padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+main{max-width:38rem;margin:0 auto;border:4px solid var(--ink);background:var(--panel);padding:16px}
+h1{font-size:1.5rem;margin:0 0 4px;color:var(--gold)}
+h2{font-size:1.15rem;margin:0 0 8px;color:var(--gold)}
+p{margin:6px 0}
+.dim{color:var(--dim)}.good{color:var(--good)}.bad{color:var(--bad)}.blue{color:var(--blue)}.gold{color:var(--gold)}
+.row{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card{border:2px dashed var(--blue);padding:10px;margin:8px 0}
+.card.on{border-style:solid;border-color:var(--good)}
+table{width:100%;border-collapse:collapse;font-size:.85rem}td,th{padding:3px 4px;border-bottom:1px solid #3b4b7a;text-align:left}
+button{font:inherit;color:var(--bg);background:var(--ink);border:3px solid var(--ink);padding:10px 14px;min-height:48px;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+button:hover:not(:disabled),button:focus-visible{background:var(--gold);border-color:var(--gold);outline:none}
+.go{display:block;width:100%;margin-top:10px;font-weight:bold}
+.sel{display:block;width:100%;margin-top:8px;text-align:left}
+ul,ol{margin:6px 0;padding-left:1.2rem}
+footer{max-width:38rem;margin:10px auto 0;font-size:.8rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"><noscript>This game needs JavaScript.</noscript></main>
+<footer>My Strategy Squad &middot; Strategy skills, without the suits. &middot; Episode 7: It'll Be Different for Us<br>The pre-mortem is Gary Klein's technique.<br>Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME]. Code: MIT. Art and text: CC BY 4.0.</footer>
+<script>
+// ---- core model (the same code was balance-tested in simulation) ----
+const G={weeks:8,start:100,forecast:20,inc:14,incSd:6,ramp:1,delay:14,prep:14,keep:0.3,spiralBelow:40,spiral:15,pause:15,live:5,obvious:2};
+const RISKS=["A key person leaves","Cash runs short","Customers don't come","A supplier lets you down","A rule changes","A rival copies you","A bad review spreads","You burn out"];
+const SIZES=[{n:"small",c:25,p:0.3},{n:"medium",c:40,p:0.4},{n:"large",c:60,p:0.3}];
+const TRIPS=[0,70,50,30];
+function shuffle(rng,a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function gauss(rng){let u=0;for(let i=0;i<6;i++)u+=rng();return (u-3)*Math.sqrt(2)}
+function pickSize(rng){const r=rng();return r<0.3?SIZES[0]:r<0.7?SIZES[1]:SIZES[2]}
+function newGame(rng){
+ const ids=shuffle(rng,[0,1,2,3,4,5,6,7]).slice(0,G.live);
+ const live=ids.map(id=>{const z=pickSize(rng);return {id,size:z.n,cost:z.c,week:2+Math.floor(rng()*7)}});
+ const obvious=shuffle(rng,live.map((_,i)=>i)).slice(0,G.obvious);
+ const incomes=[];for(let w=0;w<G.weeks;w++)incomes.push(Math.max(0,Math.round(G.inc+gauss(rng)*G.incSd)));
+ return {live,obvious,incomes};
+}
+// plan: {pm:boolean, prep:Set of live indexes, trip:number}
+function run(g,plan){
+ let cash=G.start-(plan.pm?G.delay:0);cash-=G.prep*plan.prep.size;
+ const log=[];let stopped=false;
+ for(let w=1;w<=G.weeks;w++){
+  let inc=g.incomes[w-1]+Math.round((G.ramp||0)*(w-1)),ev=[],dmg=0;
+  g.live.forEach((r,i)=>{if(r.week===w){const prepared=plan.prep.has(i);const d=Math.round(r.cost*(prepared?G.keep:1));dmg+=d;ev.push({i,d,prepared})}});
+  cash+=inc-dmg;let sp=0;
+  if(cash<G.spiralBelow){cash-=G.spiral;sp=G.spiral}
+  let trip=false;
+  if(plan.trip>0&&cash<=plan.trip){trip=true;cash-=G.pause}
+  log.push({w,inc,ev,sp,cash,trip});
+  if(trip){stopped=true;break}
+ }
+ return {cash,log,stopped};
+}
+
+// ---- screens ----
+const $=document.getElementById("app");
+let g=null,plan=null,out=null,scr="title";
+const FORECAST=G.start+G.forecast*G.weeks;
+function go(s){scr=s;draw();const h=$.querySelector("h2");if(h){h.setAttribute("tabindex","-1");h.focus({preventScroll:true})}window.scrollTo(0,0)}
+const visible=()=>plan.pm?g.live.map((_,i)=>i):g.obvious;
+const cashAfter=()=>G.start-(plan.pm?G.delay:0)-G.prep*plan.prep.size;
+const tripOk=t=>t===0||t<cashAfter();
+const m=v=>(v<0?"-$":"$")+Math.abs(v);
+
+function draw(){
+ if(scr==="title"){
+  $.innerHTML=`<h1>Pre-Mortem</h1><p class="blue">A game about imagining failure before it happens.</p>
+  <h2>How to play</h2>
+  <ul>
+  <li>You're launching something new. You have $${G.start} and ${G.weeks} weeks. The optimistic forecast says $${FORECAST}.</li>
+  <li>Hidden in your plan are ${G.live} ways it could go wrong. Each hits in a particular week.</li>
+  <li>You can <b>launch now</b> and see only the two most obvious risks. Or you can run a <b>pre-mortem</b>: imagine it's a year on and it failed, and see all of them. It delays you and costs $${G.delay}.</li>
+  <li>Preparing for a risk costs $${G.prep} and cuts its damage by 70%.</li>
+  <li>Then set a <b>tripwire</b>: if your cash falls to a level you choose, you stop and rethink (it costs $${G.pause}). It has to sit below the cash you start with.</li>
+  <li>Below $${G.spiralBelow}, debts spiral.</li>
+  </ul>
+  <button class="go" data-a="start">Start</button>`;
+ }else if(scr==="brief"){
+  $.innerHTML=`<h2>Your plan</h2><p>Launch a new service. Cash: <b class="gold">$${G.start}</b>. Weeks: ${G.weeks}.</p>
+  <p>The forecast says you'll end with <b class="gold">$${FORECAST}</b>. Everyone on the team feels good about it.</p>
+  <p class="dim">What do you do first?</p>
+  <button class="go" data-a="now">Launch now</button>
+  <button class="go" data-a="pm">Run a pre-mortem (-$${G.delay} for the delay)</button>`;
+ }else if(scr==="risks"){
+  const v=visible();
+  $.innerHTML=`<h2>${plan.pm?"It's a year from now. It failed. Why?":"The risks you can see"}</h2>
+  <p class="dim">${plan.pm?"Imagining failure brings out every live risk.":"Only the obvious ones. There may be more."}</p>
+  ${v.map(i=>{const r=g.live[i],on=plan.prep.has(i);return `<div class="card ${on?"on":""}"><p><b>${RISKS[r.id]}</b></p>
+   <p>Size: ${SIZES.find(z=>z.c===r.cost).n} (about $${r.cost}). Around week ${r.week}.</p>
+   <button class="sel" data-a="t${i}" aria-pressed="${on}">${on?"Prepared (-$"+G.prep+"). Tap to undo.":"Prepare for it (-$"+G.prep+")"}</button></div>`}).join("")}
+  <p>Cash after preparing: <b class="${cashAfter()<G.spiralBelow?"bad":"gold"}">${m(cashAfter())}</b></p>
+  <button class="go" data-a="trip">Set your tripwire</button>`;
+ }else if(scr==="trip"){
+  $.innerHTML=`<h2>Set your tripwire</h2><p>If your cash falls to this level at the end of a week, you stop and rethink. It costs $${G.pause}.</p>
+  <p class="dim">You start with ${m(cashAfter())}. A tripwire has to sit below that.</p>
+  ${TRIPS.map(t=>`<button class="sel" data-a="w${t}" ${tripOk(t)?"":"disabled"}>${t===0?"No tripwire. I'll see it through.":"Stop if cash falls to $"+t+(tripOk(t)?"":" (too high: you're already there)")}</button>`).join("")}`;
+ }else if(scr==="run"){
+  const o=out;
+  $.innerHTML=`<h2>The launch</h2><table><tr><th>Wk</th><th>Income</th><th>What happened</th><th>Cash</th></tr>
+  ${o.log.map(l=>`<tr><td>${l.w}</td><td>+${l.inc}</td><td>${[...l.ev.map(e=>`<span class="${e.prepared?"gold":"bad"}">-${e.d} ${RISKS[g.live[e.i].id].toLowerCase()}${e.prepared?" (prepared)":""}</span>`),l.sp?`<span class="bad">spiral -${l.sp}</span>`:"",l.trip?`<span class="blue">TRIPWIRE: stop and rethink (-${G.pause})</span>`:""].filter(Boolean).join("<br>")||"-"}</td><td class="${l.cash<G.spiralBelow?"bad":""}">${m(l.cash)}</td></tr>`).join("")}</table>
+  <button class="go" data-a="end">See results</button>`;
+ }else{
+  const o=out,last=o.log.length;
+  $.innerHTML=`<h2>Results</h2><p>The forecast: <b class="gold">$${FORECAST}</b>. You ended with <b class="${o.cash<0?"bad":"good"}">${m(o.cash)}</b>.</p>
+  <p class="blue">${o.stopped?"Your tripwire stopped the launch in week "+last+".":"You saw it through."}</p>
+  <h2>What was hiding</h2>
+  ${g.live.map((r,i)=>{const seen=visible().includes(i),hit=o.log.some(l=>l.ev.some(e=>e.i===i)),pre=plan.prep.has(i);
+   const st=!seen?(hit?"not seen, and it hit":"not seen"):hit?(pre?"prepared, and it hit for less":"seen but not prepared, and it hit"):(o.stopped&&r.week>last?"never arrived; you had stopped":"seen");
+   return `<p>${RISKS[r.id]} (week ${r.week}): ${st}</p>`}).join("")}
+  <h2>Debrief</h2>
+  <ol><li>What did we expect?</li><li>What actually happened?</li><li>Why the gap?</li><li>What do we change?</li><li>What does this game get wrong about real life?</li></ol>
+  <p>One more: did your tripwire help, or stop you too early?</p>
+  <p class="dim">Here the risks come from a short list of eight, and imagining failure shows them all. In real life, a pre-mortem surfaces more, not everything.</p>
+  <p>Take it home: pick your next big commitment. Imagine it's a year on and it failed. Write five reasons. Prepare for the biggest. Then write one tripwire: a number, a date, and what you'll do.</p>
+  <button class="go" data-a="again">Play again</button>`;
+ }
+}
+
+function act(a){
+ if(a==="start"){g=newGame(Math.random);plan={pm:false,prep:new Set(),trip:0};out=null;go("brief")}
+ else if(a==="now"){plan.pm=false;go("risks")}
+ else if(a==="pm"){plan.pm=true;go("risks")}
+ else if(/^t\d$/.test(a)){const i=+a[1];if(plan.prep.has(i))plan.prep.delete(i);else plan.prep.add(i);draw()}
+ else if(a==="trip")go("trip");
+ else if(/^w\d+$/.test(a)&&scr==="trip"&&tripOk(+a.slice(1))){plan.trip=+a.slice(1);out=run(g,plan);go("run")}
+ else if(a==="end")go("end");
+ else if(a==="again"){g=null;go("title")}
+}
+$.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(b&&!b.disabled)act(b.dataset.a)});
+draw();
+</script>
+</body>
+</html>

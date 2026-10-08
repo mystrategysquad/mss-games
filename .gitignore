@@ -1,0 +1,10 @@
+# system files
+.DS_Store
+Thumbs.db
+# editor files
+.vscode/
+*.swp
+# python
+__pycache__/
+# pico-8 exports you build locally (add the ones you want to share by hand)
+*.bin
