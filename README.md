@@ -1,6 +1,8 @@
 # My Strategy Squad: Games
 
-**Strategy skills, without the suits.**
+**Strategizing skills, without the suits.**
+
+Strategy isn't something you buy. It's something you do. We coach the doing.
 
 Free micro-games about strategy, for people who run small businesses and work in
 nonprofits. Each game takes about five minutes, teaches one idea from the
@@ -48,7 +50,7 @@ The fifth one matters. A game is a small world. Real life is bigger.
 
 ## Credits
 
-Design: Andrew David Roberts. Code help by Claude, an AI assistant, and edited and
+Design: Andrew David Roberts. Code written with Claude, an AI assistant, and edited and
 tested by Andrew David Roberts. Made with PICO-8 and plain HTML and JavaScript.
 
 Ideas we build on, credited in each game: John Kay and Mervyn King
@@ -57,7 +59,7 @@ pre-mortem.
 
 ## License
 
-Made in the spirit of Steven Levy's *Hackers: Heroes of the Computer Revolution*: free to play, study, change and
+Made in the spirit of Steven Levy's *Hackers*: free to play, study, change and
 share.
 
 - **Code:** MIT license. See [LICENSE](LICENSE).
@@ -66,4 +68,4 @@ share.
 
 ## Find us
 
-Podcast, streams and Substack: via website http://www.mystrategysquad.com
+Podcast, streams and Substack: [LINKS]

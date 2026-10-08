@@ -6,7 +6,7 @@ __lua__
 -- a plan. my strategy squad, ep 16
 -- code written with claude, an ai
 -- assistant, and edited and tested
--- by [your name]
+-- by andrew david roberts
 -- code: mit license
 -- art, sound, text: cc by 4.0
 -- the my strategy squad name and

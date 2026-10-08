@@ -19,7 +19,7 @@ How to run:
 Tuning lives in the constants below. The PICO-8 cart (the_last_three.p8) and the
 browser version (the-last-three.html) use the same numbers and the same wording.
 
-Code written with Claude, an AI assistant, and edited and tested by [YOUR NAME].
+Code written with Claude, an AI assistant, and edited and tested by Andrew David Roberts.
 Code: MIT license. Art, sound and text: CC BY 4.0.
 The My Strategy Squad name and logo are not covered by these licenses.
 """
