@@ -85,32 +85,41 @@ function draw(){
  if(scr==="title"){
   $.innerHTML=`<h1>Pre-Mortem</h1><p class="blue">A game about imagining failure before it happens.</p>
   <h2>How to play</h2>
-  <ul>
-  <li>You're launching something new. You have $${G.start} and ${G.weeks} weeks. The optimistic forecast says $${FORECAST}.</li>
-  <li>Hidden in your plan are ${G.live} ways it could go wrong. Each hits in a particular week.</li>
-  <li>You can <b>launch now</b> and see only the two most obvious risks. Or you can run a <b>pre-mortem</b>: imagine it's a year on and it failed, and see all of them. It delays you and costs $${G.delay}.</li>
-  <li>Preparing for a risk costs $${G.prep} and cuts its damage by 70%.</li>
-  <li>Then set a <b>tripwire</b>: if your cash falls to a level you choose, you stop and rethink (it costs $${G.pause}). It has to sit below the cash you start with.</li>
-  <li>Below $${G.spiralBelow}, debts spiral.</li>
-  </ul>
+  <p><b>The goal.</b> You're launching a new service with $${G.start} of cash. It earns about $${G.inc} a week, a little more each week. After ${G.weeks} weeks, end with as much cash as you can. The forecast says you'll end with $${FORECAST}: that's the hopeful guess, if nothing goes wrong.</p>
+  <p><b>Risks.</b> A risk is something that could go wrong. ${G.live} are hidden in your plan. Each one hits in a particular week and costs money: small $25, medium $40, large $60.</p>
+  <p><b>Your first choice.</b> <b>Launch now</b> and you only see the ${G.obvious} most obvious risks. Or run a <b>pre-mortem</b> first: imagine it's a year later and the launch failed, then ask why. It shows you all ${G.live} risks, but the delay costs $${G.delay}.</p>
+  <p><b>Preparing.</b> For each risk you can see, you can <b>prepare</b>: pay $${G.prep} now, and that risk does 70% less damage when it hits.</p>
+  <p><b>Tripwire.</b> Before you launch, set a <b>tripwire</b>: a line you choose in advance. If your cash falls to it, you stop and rethink. Stopping costs $${G.pause}, but no more risks can hit you.</p>
+  <p><b>Debt spiral.</b> Each week your cash is below $${G.spiralBelow}, you have to borrow, and you lose $${G.spiral} more. Keep a cushion.</p>
+  <details><summary>Words used in this game</summary><ul>
+  <li><b>Forecast:</b> the hopeful guess of how it will go.</li>
+  <li><b>Risk:</b> something that could go wrong, and what it would cost.</li>
+  <li><b>Pre-mortem:</b> imagining a project has already failed, to find out why before it happens. The opposite of a post-mortem.</li>
+  <li><b>Prepare:</b> spend a little now so a risk hurts less later.</li>
+  <li><b>Tripwire:</b> a line you set in advance that tells you when to stop and rethink: a number, a date, and what you'll do.</li>
+  <li><b>Debt spiral:</b> when low cash forces you to borrow, and borrowing makes cash lower still.</li>
+  </ul></details>
   <button class="go" data-a="start">Start</button>`;
  }else if(scr==="brief"){
   $.innerHTML=`<h2>Your plan</h2><p>Launch a new service. Cash: <b class="gold">$${G.start}</b>. Weeks: ${G.weeks}.</p>
   <p>The forecast says you'll end with <b class="gold">$${FORECAST}</b>. Everyone on the team feels good about it.</p>
   <p class="dim">What do you do first?</p>
   <button class="go" data-a="now">Launch now</button>
-  <button class="go" data-a="pm">Run a pre-mortem (-$${G.delay} for the delay)</button>`;
+  <p class="dim">You see only the ${G.obvious} most obvious risks, and start at once.</p>
+  <button class="go" data-a="pm">Run a pre-mortem (-$${G.delay} for the delay)</button>
+  <p class="dim">Imagine it's a year later and the launch failed. Why? You see all ${G.live} risks first.</p>`;
  }else if(scr==="risks"){
   const v=visible();
   $.innerHTML=`<h2>${plan.pm?"It's a year from now. It failed. Why?":"The risks you can see"}</h2>
   <p class="dim">${plan.pm?"Imagining failure brings out every live risk.":"Only the obvious ones. There may be more."}</p>
+  <p class="dim">Prepare for a risk: pay $${G.prep} now, and it does 70% less damage when it hits. Watch your cash: below $${G.spiralBelow}, debts spiral.</p>
   ${v.map(i=>{const r=g.live[i],on=plan.prep.has(i);return `<div class="card ${on?"on":""}"><p><b>${RISKS[r.id]}</b></p>
    <p>Size: ${SIZES.find(z=>z.c===r.cost).n} (about $${r.cost}). Around week ${r.week}.</p>
    <button class="sel" data-a="t${i}" aria-pressed="${on}">${on?"Prepared (-$"+G.prep+"). Tap to undo.":"Prepare for it (-$"+G.prep+")"}</button></div>`}).join("")}
   <p>Cash after preparing: <b class="${cashAfter()<G.spiralBelow?"bad":"gold"}">${m(cashAfter())}</b></p>
   <button class="go" data-a="trip">Set your tripwire</button>`;
  }else if(scr==="trip"){
-  $.innerHTML=`<h2>Set your tripwire</h2><p>If your cash falls to this level at the end of a week, you stop and rethink. It costs $${G.pause}.</p>
+  $.innerHTML=`<h2>Set your tripwire</h2><p>A tripwire is a line you set in advance. If your cash falls to it at the end of a week, you stop and rethink. Stopping costs $${G.pause}, but no more risks can hit you. Too high and you stop too early; none at all and debts can spiral.</p>
   <p class="dim">You start with ${m(cashAfter())}. A tripwire has to sit below that.</p>
   ${TRIPS.map(t=>`<button class="sel" data-a="w${t}" ${tripOk(t)?"":"disabled"}>${t===0?"No tripwire. I'll see it through.":"Stop if cash falls to $"+t+(tripOk(t)?"":" (too high: you're already there)")}</button>`).join("")}`;
  }else if(scr==="run"){

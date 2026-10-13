@@ -37,6 +37,16 @@ shocks={
  {n="the wildcard",d="something nobody listed.",w={1,2,2,0,1}}
 }
 
+-- plain-english how-to-play pages
+-- (keep in step with the tuning)
+how_pages={
+ {"the goal",{"you run a small outfit. you","have 8 points to spend on","cushions: things that protect","your plan when life hits it.","","most points in one cushion: 4.","score as much as you can","over three rounds of shocks."}},
+ {"the five cushions",{"spread: don't depend on one","  customer, supplier or person","slack: spare cash and time","options: short deals you can","  get out of","response: a plan written","  before you need it","signals: early warning signs"}},
+ {"the shocks",{"shocks hit 3 at a time, for","3 rounds. there are 8 kinds,","like a key person leaving or","cash arriving late.","","each shock is stopped by","different cushions. the more","points in the right ones, the","better you're protected."}},
+ {"held, bent or broke",{"held: you were ready. 2 pts","bent: it hurt, but you","  coped. 1 pt","broke: it got through. 0 pts","","best possible score: 18.","there's always a wildcard,","and no cushion covers all."}},
+ {"fixing your plan",{"after each round you get 2","moves: take a point from one","cushion, put it in another.","","fix your thinnest cushion,","not just the last shock.","","up/down: choose a cushion","left/right: remove or add"}},
+}
+
 function _init()
  scr="title"
  sel=1
@@ -137,9 +147,15 @@ end
 
 function _update()
  if scr=="title" then
-  if btnp(5) then scr="how" end
+  if btnp(5) then
+   scr="how"
+   hpg=1
+  end
  elseif scr=="how" then
-  if btnp(5) then new_game() end
+  if btnp(4) and hpg>1 then hpg-=1 end
+  if btnp(5) then
+   if hpg<#how_pages then hpg+=1 else new_game() end
+  end
  elseif scr=="alloc" or scr=="fix" then
   if btnp(2) then sel=(sel+3)%5+1 end
   if btnp(3) then sel=sel%5+1 end
@@ -229,17 +245,18 @@ function draw_title()
 end
 
 function draw_how()
- print("how to play",2,2,10)
- print("spread 8 points across five",2,14,7)
- print("cushions. max 4 in each.",2,22,7)
- print("then shocks hit: three a round,",2,34,7)
- print("three rounds.",2,42,7)
- print("each is held, bent or broke,",2,54,7)
- print("depending on the cushions.",2,62,7)
- print("after each round, 2 moves to",2,74,7)
- print("fix your plan.",2,82,7)
- print("up/down pick, left/right change",2,96,12)
- print("press x",2,116,10)
+ local pg_=how_pages[hpg]
+ print("how to play "..hpg.."/"..#how_pages,2,2,10)
+ print(pg_[1],2,14,12)
+ for i=1,#pg_[2] do
+  print(pg_[2][i],2,16+i*8,7)
+ end
+ if hpg>1 then print("o: back",2,116,5) end
+ if hpg<#how_pages then
+  print("x: next",96,116,10)
+ else
+  print("x: start",92,116,10)
+ end
 end
 
 function draw_alloc()

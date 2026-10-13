@@ -26,6 +26,16 @@ names={
  {"burst pipe, sunday morning","night-time flood call","blocked main drain"}
 }
 
+-- plain-english how-to-play pages
+-- (keep in step with the tuning)
+how_pages={
+ {"the goal",{"you run a small trade business.","the game lasts 8 weeks.","each week you have about 10","slots: chunks of working time.","","your score adds up your cash,","how well you're known for your","focus, and the energy you have","left at the end."}},
+ {"your focus",{"first, pick your focus: the","kind of work you want to be","known for. older-home repairs,","new installs, or emergency","call-outs.","","work on your focus builds your","name. work off it pays, but","pulls you away from it."}},
+ {"offers",{"each week, offers arrive. each","shows how many slots it needs","and what it pays per slot.","","x: yes. take the job.","o: no. turn it down.","up: redirect. a polite no,","with someone else's name to","give them. (o is z or c)"}},
+ {"too much work",{"say yes to more slots than","you have, and the extra goes","badly: you aren't paid for it,","and you lose 30% of its fee.","","it also costs energy and","reputation. low energy means","fewer slots the next week."}},
+ {"known for it",{"known for it: how strongly","people link you to your focus.","on-focus work raises it.","off-focus work lowers it.","","redirecting off-focus work","raises it a little, and can","bring an on-focus offer next","week. saying no is free."}},
+}
+
 function r5(x)
  return flr(x/5+0.5)*5
 end
@@ -133,9 +143,15 @@ end
 
 function _update()
  if scr=="title" then
-  if btnp(5) then scr="how" end
+  if btnp(5) then
+   scr="how"
+   hpg=1
+  end
  elseif scr=="how" then
-  if btnp(5) then scr="focus" end
+  if btnp(4) and hpg>1 then hpg-=1 end
+  if btnp(5) then
+   if hpg<#how_pages then hpg+=1 else scr="focus" end
+  end
  elseif scr=="focus" then
   if btnp(2) then sel=(sel+2)%3 end
   if btnp(3) then sel=(sel+1)%3 end
@@ -202,17 +218,18 @@ function draw_title()
 end
 
 function draw_how()
- print("how to play",2,2,10)
- print("8 weeks, about 10 slots a week",2,14,7)
- print("pick what you want to be",2,24,7)
- print("known for. then offers arrive.",2,32,7)
- print("x yes   o no   up redirect",2,44,12)
- print("(o is the z or c key)",2,52,5)
- print("redirect is a polite no that",2,64,7)
- print("keeps the door open.",2,72,7)
- print("too much work costs you pay,",2,84,7)
- print("energy and reputation.",2,92,7)
- print("press x",2,116,10)
+ local pg_=how_pages[hpg]
+ print("how to play "..hpg.."/"..#how_pages,2,2,10)
+ print(pg_[1],2,14,12)
+ for i=1,#pg_[2] do
+  print(pg_[2][i],2,16+i*8,7)
+ end
+ if hpg>1 then print("o: back",2,116,5) end
+ if hpg<#how_pages then
+  print("x: next",96,116,10)
+ else
+  print("x: start",92,116,10)
+ end
 end
 
 function draw_focus()

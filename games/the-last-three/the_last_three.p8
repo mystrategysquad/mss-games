@@ -34,6 +34,15 @@ jobs={
   e={"rot behind the wall","late tiles","client changed their mind"}}
 }
 
+-- plain-english how-to-play pages
+-- (keep in step with the tuning)
+how_pages={
+ {"the goal",{"you run a small plumbing firm","and bid for 10 jobs, one at a","time. end with as much cash","as you can.","","each job has a plan: the days","it takes if everything goes","well."}},
+ {"estimate and quote",{"you give an estimate: how many","days you think it will take.","your quote is that many days","at $130 a day.","","a rival bids too. the lowest","quote wins the job. if you win,","each day it really takes costs","you $100."}},
+ {"inside and outside",{"jobs 1-3: you only have your","own plan. that's the inside","view: the job as you see it.","","from job 4 you also see the","last three jobs in town: what","was planned, and what it took.","that's the outside view."}},
+ {"controls",{"left/right: change your","estimate by half a day.","up/down: by a whole day.","x: send your quote.","","profit = your quote, minus","$100 for each day the job","really took."}},
+}
+
 function r5(x)
  return flr(x*2+0.5)/2
 end
@@ -101,7 +110,15 @@ end
 
 function _update()
  if scr=="title" then
-  if btnp(5) then start_game() end
+  if btnp(5) then
+   scr="how"
+   hpg=1
+  end
+ elseif scr=="how" then
+  if btnp(4) and hpg>1 then hpg-=1 end
+  if btnp(5) then
+   if hpg<#how_pages then hpg+=1 else start_game() end
+  end
  elseif scr=="quote" then
   -- left/right: half a day
   -- up/down: a whole day
@@ -130,6 +147,8 @@ function _draw()
  cls(1)
  if scr=="title" then
   draw_title()
+ elseif scr=="how" then
+  draw_how()
  elseif scr=="quote" then
   draw_quote()
  elseif scr=="result" then
@@ -148,6 +167,21 @@ function draw_title()
  print("estimate jobs in days.",16,68,5)
  print("lowest quote wins.",24,76,5)
  print("press x",48,100,10)
+end
+
+function draw_how()
+ local pg_=how_pages[hpg]
+ print("how to play "..hpg.."/"..#how_pages,2,2,10)
+ print(pg_[1],2,14,12)
+ for i=1,#pg_[2] do
+  print(pg_[2][i],2,16+i*8,7)
+ end
+ if hpg>1 then print("o: back",2,116,5) end
+ if hpg<#how_pages then
+  print("x: next",96,116,10)
+ else
+  print("x: start",92,116,10)
+ end
 end
 
 function draw_quote()

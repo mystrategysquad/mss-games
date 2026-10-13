@@ -91,13 +91,18 @@ function draw(){
  if(scr==="title"){
   $.innerHTML=`<h1>Yes Machine</h1><p class="blue">A game about the power of no.</p>
   <h2>How to play</h2>
-  <ul>
-  <li>You run a small outfit. Each week you have about 10 slots of working time. The game lasts 8 weeks.</li>
-  <li>Choose what you want to be <b>known for</b>. That is your focus.</li>
-  <li>Each week, offers arrive. Say <b>Yes</b>, <b>No</b>, or <b>Redirect</b>: a polite no, with someone else's name to give them.</li>
-  <li>Work beyond your slots goes badly. You lose pay, energy, and reputation.</li>
-  <li>What you take on teaches people what you are for. It changes the offers you get next.</li>
-  </ul>
+  <p><b>The goal.</b> You run a small trade business for 8 weeks. Each week you have about 10 <b>slots</b>: chunks of working time. Your final score adds up your cash, how well you're known for your focus, and the energy you have left.</p>
+  <p><b>Your focus.</b> First, pick the kind of work you want to be <b>known for</b>. Work on your focus builds your name. Work off your focus still pays, but pulls you away from it.</p>
+  <p><b>Offers.</b> Each week, offers arrive. Each one shows how many slots it needs and what it pays per slot. For each, choose <b>Yes</b> (take the job), <b>No</b> (turn it down), or <b>Redirect</b> (a polite no, with someone else's name to give them).</p>
+  <p><b>Too much work.</b> Say yes to more slots than you have, and the extra goes badly: you aren't paid for it, and you lose 30% of its fee. It also costs energy and reputation, and low energy means fewer slots the next week.</p>
+  <p><b>Known for it.</b> This shows how strongly people link you to your focus. On-focus work raises it; off-focus work lowers it. Redirecting off-focus work raises it a little, and can bring an extra on-focus offer next week. Saying no costs nothing.</p>
+  <details><summary>Words used in this game</summary><ul>
+  <li><b>Slot:</b> a chunk of your working time. About 10 a week.</li>
+  <li><b>Focus:</b> the work you want to be known for.</li>
+  <li><b>Known for it:</b> your reputation for your focus, from 0 to 10.</li>
+  <li><b>Energy:</b> how much you have left in the tank, from 0 to 10. Overwork drains it.</li>
+  <li><b>Redirect:</b> a no that keeps the door open: you pass the work to someone better suited.</li>
+  </ul></details>
   <h2>Pick your focus</h2>
   ${TYPES.map((t,i)=>`<button class="go" data-a="f${i}">${t}</button>`).join("")}`;
  }else if(scr==="week"){

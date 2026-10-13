@@ -85,14 +85,17 @@ function draw(){
  if(scr==="title"){
   $.innerHTML=`<h1>The Squad</h1><p class="blue">A game about asking the right people before a big call.</p>
   <h2>How to play</h2>
-  <ul>
-  <li>Eight big decisions arrive. Each is secretly a good idea or a bad one.</li>
-  <li>Your own gut says <b>go</b> or <b>no</b>. It leans optimistic.</li>
-  <li>You have ${G.favors} favors. Ask up to ${G.perDecision} advisers on each decision. They give a second opinion: go or no.</li>
-  <li>Then you decide. A good idea you take earns $${G.pay.goodGo}. A bad one you take costs $${-G.pay.badGo}. Turning down a good idea loses $${-G.pay.goodNo}. Turning down a bad one saves $${G.pay.badNo}.</li>
-  <li>The advisers have personalities. Watch their track records.</li>
-  <li>Computer: left arrow for no-go, right arrow for go.</li>
-  </ul>
+  <p><b>The goal.</b> Eight big decisions arrive, such as hire a manager or open a second site. Each is secretly a good idea or a bad one. You decide: <b>go</b> or <b>no-go</b>. Your gut gives a first answer, but it leans optimistic.</p>
+  <p><b>Your advisers.</b> Four advisers can give you a second opinion, go or no: <b>Pat</b> (always upbeat), <b>Dee</b> (always careful), <b>Clive</b> (blunt and fair) and <b>Lee</b> (the accountant). Don't take the labels on trust: watch their records.</p>
+  <p><b>Favors.</b> Asking an adviser costs a favor. You have ${G.favors} for the whole game, and can ask up to ${G.perDecision} advisers on each decision. Each adviser's record shows how often they've been right so far.</p>
+  <p><b>Scoring.</b> A good idea you take earns $${G.pay.goodGo}. A bad one you take costs $${-G.pay.badGo}. Turning down a good idea loses $${-G.pay.goodNo}. Turning down a bad one saves $${G.pay.badNo}.</p>
+  <p class="dim">Computer: left arrow for no-go, right arrow for go.</p>
+  <details><summary>Words used in this game</summary><ul>
+  <li><b>Gut:</b> your first instinct. Often right, but it leans toward yes.</li>
+  <li><b>Favor:</b> what it costs you to ask someone for advice. You have a limited supply.</li>
+  <li><b>Track record:</b> how often an adviser has been right. It builds as you play.</li>
+  <li><b>Yes-man:</b> someone who tells you what you want to hear, whatever the truth.</li>
+  </ul></details>
   <button class="go" data-a="start">Start</button>`;
  }else if(scr==="round"){
   const R=S.rounds[S.i],n=Object.keys(R.asked).length;

@@ -28,6 +28,12 @@ Every game comes in two versions that use the same rules and wording:
 The Last Three also has a Python version (`last_three.py`) with built-in tests
 and a balance check.
 
+## Play online
+
+The games are published free with GitHub Pages. The home page (`index.html` at the top
+of this repository) lists all six. The empty `.nojekyll` file tells GitHub Pages to
+serve the files exactly as they are.
+
 ## How to play
 
 **In a browser:** open the game's `index.html` file. That's it.

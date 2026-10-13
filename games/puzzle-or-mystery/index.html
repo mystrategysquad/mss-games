@@ -83,15 +83,18 @@ function draw(){
  if(scr==="title"){
   $.innerHTML=`<h1>Puzzle or Mystery?</h1><p class="blue">A game about sorting the problem before you solve it.</p>
   <h2>How to play</h2>
-  <ul>
-  <li>Eight decisions arrive. Each has two options and an estimated payoff.</li>
-  <li>Sort each one: <b>puzzle</b> or <b>mystery</b>. Ask: can I list everything that could happen, and put sensible odds on it?</li>
-  <li>Call it a puzzle and you <b>calculate</b>: you take the option that looks best on the page. It's free.</li>
-  <li>Call it a mystery and you <b>scout</b>: you pay $${G.scoutCost} for a closer look before you choose.</li>
-  <li>In a puzzle the numbers are exact. In a mystery they are only guesses.</li>
-  <li>Four puzzles and four mysteries, in a random order.</li>
-  <li>Computer: left arrow for puzzle, right arrow for mystery.</li>
-  </ul>
+  <p><b>The goal.</b> Eight decisions arrive, one at a time. Each has two options, and each option shows an estimated <b>payoff</b>: the money it should bring in. Choose well and end with the biggest total payoff.</p>
+  <p><b>Sort it first.</b> Before you choose, decide what kind of problem it is. Ask: <i>can I list everything that could happen, and put sensible odds on it?</i> If yes, it's a <b>puzzle</b>. If no, it's a <b>mystery</b>. The clue line on each card helps.</p>
+  <p><b>Puzzle: calculate.</b> The numbers on the page are exact, so you just take the best one. It's free.</p>
+  <p><b>Mystery: scout.</b> The numbers are only guesses. You pay $${G.scoutCost} for a closer look, then choose.</p>
+  <p><b>What happens.</b> After each decision you see what it really was, the real payoffs, and what you left on the table. Sort wrongly and you either pay to scout for nothing, or trust guesses that mislead you. There are four puzzles and four mysteries, in a random order.</p>
+  <p class="dim">Computer: left arrow for puzzle, right arrow for mystery.</p>
+  <details><summary>Words used in this game</summary><ul>
+  <li><b>Payoff:</b> the money an option brings in.</li>
+  <li><b>Puzzle:</b> a problem with known rules and numbers you can trust. Work it out.</li>
+  <li><b>Mystery:</b> a problem where nobody can list everything that might happen. The numbers are guesses.</li>
+  <li><b>Scout:</b> pay a little to learn more before you commit.</li>
+  </ul></details>
   <button class="go" data-a="start">Start</button>`;
  }else if(scr==="round"){
   const R=S.rounds[S.i],s=R.s;

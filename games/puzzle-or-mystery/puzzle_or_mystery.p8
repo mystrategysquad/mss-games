@@ -41,6 +41,15 @@ scen={
  {k="m",t="a new service",x1="will customers want it?",x2="you can only guess.",c="nobody has asked them yet.",a="launch",b="hold off"}
 }
 
+-- plain-english how-to-play pages
+-- (keep in step with the tuning)
+how_pages={
+ {"the goal",{"8 decisions arrive, one at a","time. each has two options.","each option shows a payoff:","the money it should bring in.","","pick well and end with the","biggest total payoff."}},
+ {"sort it first",{"before you choose, decide what","kind of problem it is. ask:","can i list everything that","could happen, and put sensible","odds on it?","","yes: it's a puzzle.","no: it's a mystery.","the clue in blue helps."}},
+ {"puzzle or mystery",{"puzzle (press left): the","numbers are exact. you just","calculate: the game takes the","best option. free.","","mystery (press right): the","numbers are only guesses. you","scout: pay $30 for a closer","look, then choose."}},
+ {"what happens",{"after each decision you see","what it really was, the real","payoffs, and what you missed.","","sort wrongly and you either","pay to scout for nothing, or","trust guesses that mislead you.","","4 puzzles, 4 mysteries, mixed."}},
+}
+
 function r10(x)
  return flr(x/10+0.5)*10
 end
@@ -135,9 +144,15 @@ end
 
 function _update()
  if scr=="title" then
-  if btnp(5) then scr="how" end
+  if btnp(5) then
+   scr="how"
+   hpg=1
+  end
  elseif scr=="how" then
-  if btnp(5) then new_game() end
+  if btnp(4) and hpg>1 then hpg-=1 end
+  if btnp(5) then
+   if hpg<#how_pages then hpg+=1 else new_game() end
+  end
  elseif scr=="round" then
   if btnp(0) then sort_it("p")
   elseif btnp(1) then sort_it("m")
@@ -194,18 +209,18 @@ function draw_title()
 end
 
 function draw_how()
- print("how to play",2,2,10)
- print("eight decisions, two options",2,14,7)
- print("each, with an estimated payoff.",2,22,7)
- print("sort each: puzzle or mystery?",2,34,7)
- print("puzzle (left): you calculate.",2,46,12)
- print("take the best-looking option.",2,54,12)
- print("mystery (right): you scout for",2,66,12)
- print("$"..scout_cost.." and take a closer look.",2,74,12)
- print("in a puzzle the numbers are",2,88,7)
- print("exact. in a mystery, guesses.",2,96,7)
- print("four of each, random order.",2,104,6)
- print("press x",2,116,10)
+ local pg_=how_pages[hpg]
+ print("how to play "..hpg.."/"..#how_pages,2,2,10)
+ print(pg_[1],2,14,12)
+ for i=1,#pg_[2] do
+  print(pg_[2][i],2,16+i*8,7)
+ end
+ if hpg>1 then print("o: back",2,116,5) end
+ if hpg<#how_pages then
+  print("x: next",96,116,10)
+ else
+  print("x: start",92,116,10)
+ end
 end
 
 function draw_round()

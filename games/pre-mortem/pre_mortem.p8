@@ -166,9 +166,15 @@ end
 
 function _update()
  if scr=="title" then
-  if btnp(5) then scr="how" end
+  if btnp(5) then
+   scr="how"
+   hpg=1
+  end
  elseif scr=="how" then
-  if btnp(5) then new_game() end
+  if btnp(4) and hpg>1 then hpg-=1 end
+  if btnp(5) then
+   if hpg<4 then hpg+=1 else new_game() end
+  end
  elseif scr=="brief" then
   if btnp(2) or btnp(3) then sel=3-sel end
   if btnp(5) then
@@ -245,19 +251,55 @@ function draw_title()
 end
 
 function draw_how()
- print("how to play",2,2,10)
- print("you have $"..start.." and "..weeks_n.." weeks.",2,12,7)
- print("the forecast says $"..forecast()..".",2,20,7)
- print(live_n.." risks hide in your plan.",2,32,7)
- print("launch now: see only "..obv_n..".",2,40,12)
- print("pre-mortem: imagine it failed",2,48,12)
- print("and see all "..live_n..". costs $"..delay..".",2,56,12)
- print("preparing costs $"..prep_c..", cuts",2,68,7)
- print("a risk's damage by 70%.",2,76,7)
- print("set a tripwire: stop and",2,88,7)
- print("rethink if cash falls too low.",2,96,7)
- print("below $"..sp_below..", debts spiral.",2,104,7)
- print("press x",2,116,10)
+ print("how to play "..hpg.."/4",2,2,10)
+ if hpg==1 then
+  print("the goal",2,14,12)
+  print("you're launching a new service",2,24,7)
+  print("with $"..start.." of cash.",2,32,7)
+  print("it earns about $"..inc.." a week,",2,40,7)
+  print("a little more each week.",2,48,7)
+  print("after "..weeks_n.." weeks, end with as",2,60,7)
+  print("much cash as you can.",2,68,7)
+  print("the forecast says $"..forecast()..".",2,80,6)
+  print("that's the hopeful guess, if",2,88,6)
+  print("nothing goes wrong.",2,96,6)
+ elseif hpg==2 then
+  print("risks",2,14,12)
+  print("a risk is something that",2,24,7)
+  print("could go wrong. "..live_n.." are hidden",2,32,7)
+  print("in your plan. each one hits",2,40,7)
+  print("in one week and costs money:",2,48,7)
+  print("small $25, medium $40,",2,56,7)
+  print("large $60.",2,64,7)
+  print("launch now and you only see",2,76,6)
+  print("the "..obv_n.." most obvious ones.",2,84,6)
+ elseif hpg==3 then
+  print("pre-mortem and preparing",2,14,12)
+  print("a pre-mortem: imagine it's a",2,24,7)
+  print("year later and the launch",2,32,7)
+  print("failed. then ask why.",2,40,7)
+  print("it shows all "..live_n.." risks, but",2,48,7)
+  print("the delay costs $"..delay..".",2,56,7)
+  print("prepare for a risk: pay $"..prep_c,2,68,6)
+  print("now, and it does 70% less",2,76,6)
+  print("damage when it hits.",2,84,6)
+ else
+  print("tripwire and debt spiral",2,14,12)
+  print("a tripwire is a line you set",2,24,7)
+  print("in advance: if cash falls to",2,32,7)
+  print("it, you stop and rethink.",2,40,7)
+  print("stopping costs $"..pause_c..", but no",2,48,7)
+  print("more risks can hit you.",2,56,7)
+  print("debt spiral: each week your",2,68,6)
+  print("cash is below $"..sp_below..", you",2,76,6)
+  print("borrow and lose $"..sp_cost.." more.",2,84,6)
+ end
+ if hpg>1 then print("o: back",2,116,5) end
+ if hpg<4 then
+  print("x: next",96,116,10)
+ else
+  print("x: start",92,116,10)
+ end
 end
 
 function draw_brief()
@@ -278,8 +320,10 @@ function draw_brief()
   c2=7
   m2=">"
  end
- print(m1.." launch now",8,72,c1)
- print(m2.." pre-mortem (-$"..delay..")",8,84,c2)
+ print(m1.." launch now",8,66,c1)
+ print("see "..obv_n.." risks, start at once",16,74,5)
+ print(m2.." pre-mortem (-$"..delay..")",8,86,c2)
+ print("see all "..live_n.." risks first",16,94,5)
  print("up/down, then x",2,116,12)
 end
 
@@ -303,13 +347,15 @@ function draw_risks()
   print(mk.." "..names[r.id],2,y,c)
   print(szname[r.sz].." $"..r.cost..", around week "..r.week,18,y+7,6)
  end
+ print("prepare: $"..prep_c.." now, 70% less hit",2,106,6)
  print("up/down  x: prepare  o: go",2,116,12)
 end
 
 function draw_trip()
  print("set your tripwire",2,2,10)
- print("stop and rethink if cash",2,14,7)
- print("falls to this level. costs $"..pause_c..".",2,22,7)
+ print("if cash falls to this level,",2,14,7)
+ print("you stop and rethink ($"..pause_c..").",2,22,7)
+ print("no more risks can hit you.",2,30,6)
  for k=1,4 do
   local c=5
   if k==sel then c=7 end

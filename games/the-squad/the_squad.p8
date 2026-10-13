@@ -50,6 +50,15 @@ decs={
  {"change your legal setup","rules"}
 }
 
+-- plain-english how-to-play pages
+-- (keep in step with the tuning)
+how_pages={
+ {"the goal",{"8 big decisions arrive, like","hire a manager or open a","second site. each is secretly","a good idea or a bad one.","","you decide: go or no-go.","your gut gives a first answer,","but it leans optimistic."}},
+ {"your advisers",{"4 advisers can give a second","opinion: go or no.","","pat: always upbeat","dee: always careful","clive: blunt and fair","lee: the accountant","","watch their records, not","their labels."}},
+ {"favors",{"asking an adviser costs one","favor. you have 10 for the","whole game. ask up to 2","advisers on each decision.","","each adviser's record shows","how often they were right, as","right/asked. it builds as you","play."}},
+ {"scoring and controls",{"good idea, go:     +$100","good idea, no-go:  -$30","bad idea, go:      -$100","bad idea, no-go:   +$20","","up/down: pick an adviser","x: ask them","left: no-go   right: go"}},
+}
+
 function shuf(t)
  for i=#t,2,-1 do
   local j=1+flr(rnd(i))
@@ -152,9 +161,15 @@ end
 
 function _update()
  if scr=="title" then
-  if btnp(5) then scr="how" end
+  if btnp(5) then
+   scr="how"
+   hpg=1
+  end
  elseif scr=="how" then
-  if btnp(5) then new_game() end
+  if btnp(4) and hpg>1 then hpg-=1 end
+  if btnp(5) then
+   if hpg<#how_pages then hpg+=1 else new_game() end
+  end
  elseif scr=="round" then
   if btnp(2) then sel=(sel+2)%4+1 end
   if btnp(3) then sel=sel%4+1 end
@@ -213,18 +228,18 @@ function draw_title()
 end
 
 function draw_how()
- print("how to play",2,2,10)
- print("eight big decisions. each is",2,12,7)
- print("secretly a good idea or a bad.",2,20,7)
- print("your gut says go or no.",2,32,7)
- print("it leans optimistic.",2,40,7)
- print("you have "..favors0.." favors: ask up",2,52,12)
- print("to "..per_dec.." advisers per decision.",2,60,12)
- print("good idea: go "..sgn(pay_gg)..", no "..sgn(pay_gn),2,72,7)
- print("bad idea: go "..sgn(pay_bg)..", no "..sgn(pay_bn),2,80,7)
- print("left: no-go   right: go",2,88,7)
- print("watch each adviser's record.",2,96,7)
- print("press x",2,116,10)
+ local pg_=how_pages[hpg]
+ print("how to play "..hpg.."/"..#how_pages,2,2,10)
+ print(pg_[1],2,14,12)
+ for i=1,#pg_[2] do
+  print(pg_[2][i],2,16+i*8,7)
+ end
+ if hpg>1 then print("o: back",2,116,5) end
+ if hpg<#how_pages then
+  print("x: next",96,116,10)
+ else
+  print("x: start",92,116,10)
+ end
 end
 
 function draw_round()

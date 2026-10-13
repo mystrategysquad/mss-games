@@ -96,14 +96,17 @@ function draw(){
  if(scr==="title"){
   $.innerHTML=`<h1>Eight Shocks</h1><p class="blue">A game about stress-testing your plan.</p>
   <h2>How to play</h2>
-  <ul>
-  <li>You run a small outfit. Spread <b>${G.pts} points</b> across five cushions. No cushion can hold more than ${G.maxLvl}.</li>
-  <li>Then shocks hit, three at a time, in three rounds.</li>
-  <li>Each shock is <b class="good">held</b>, <b class="gold">bent</b>, or <b class="bad">broke</b>, depending on which cushions it needs.</li>
-  <li>After each round you get ${G.fixMoves} moves to fix your plan, and it becomes the next version.</li>
-  <li>No single cushion covers everything. There's always a wildcard.</li>
-  <li>The five cushions are Episode 14's five ways to build resilience.</li>
-  </ul>
+  <p><b>The goal.</b> You run a small outfit. Spread <b>${G.pts} points</b> across five <b>cushions</b>: things that protect your plan when life hits it. No cushion can hold more than ${G.maxLvl}. Then survive three rounds of shocks and score as much as you can.</p>
+  <p><b>The five cushions.</b> <b>Spread:</b> don't depend on one customer, supplier or person. <b>Slack:</b> spare cash and time. <b>Options:</b> short deals you can get out of. <b>Response:</b> a plan written before you need it. <b>Signals:</b> early warning signs. They're Episode 14's five ways to build resilience.</p>
+  <p><b>The shocks.</b> Shocks hit three at a time, for three rounds. There are eight kinds, such as a key person leaving or cash arriving late. Each one is stopped by different cushions: the more points in the right ones, the better you're protected.</p>
+  <p><b>Held, bent or broke.</b> <b class="good">Held</b>: you were ready (2 points). <b class="gold">Bent</b>: it hurt, but you coped (1 point). <b class="bad">Broke</b>: it got through (0 points). The best possible score is 18. There's always a wildcard, and no cushion covers everything.</p>
+  <p><b>Fixing your plan.</b> After each round you get ${G.fixMoves} moves: take a point from one cushion and put it in another. Fix your thinnest cushion, not just the last shock.</p>
+  <details><summary>Words used in this game</summary><ul>
+  <li><b>Cushion:</b> something that softens a blow: spare cash, a backup supplier, a plan written in advance.</li>
+  <li><b>Shock:</b> something that hits your plan from outside.</li>
+  <li><b>Held, bent, broke:</b> how well your plan survived a shock.</li>
+  <li><b>Version two:</b> your plan after you've fixed what broke.</li>
+  </ul></details>
   <button class="go" data-a="start">Build your plan</button>`;
  }else if(scr==="alloc"){
   $.innerHTML=`<h2>Plan version ${S.v}</h2><p>Points left to place: <b class="gold">${S.pool}</b></p>${areas()}
