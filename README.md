@@ -34,6 +34,24 @@ The games are published free with GitHub Pages. The home page (`index.html` at t
 of this repository) lists all six. The empty `.nojekyll` file tells GitHub Pages to
 serve the files exactly as they are.
 
+## Interactive stories
+
+`stories/` holds interactive fiction written in [Twine](https://twinery.org/)'s SugarCube story format.
+Each story is a plain-text Twee file (easy to read and to track in Git) plus the playable `index.html`
+built from it.
+
+- **The Size-Up** (`stories/the-size-up/`): help Marisol work out why her café's Saturday sales fell
+  by a third. Practices "What's really going on?" Preview: Act 1.
+
+To rebuild a story after editing its `.twee` file:
+
+```
+python3 stories/build.py stories/the-size-up/the-size-up.twee stories/formats/sugarcube-2.37.3/format.js stories/the-size-up/index.html
+```
+
+`stories/build.py` is a small stand-in for [Tweego](https://www.motoslave.net/tweego/); Tweego works too.
+SugarCube is by Thomas Michael Edwards, under its own license (`stories/formats/sugarcube-2.37.3/LICENSE`).
+
 ## How to play
 
 **In a browser:** open the game's `index.html` file. That's it.
