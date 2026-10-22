@@ -52,6 +52,11 @@ python3 stories/build.py stories/the-size-up/the-size-up.twee stories/formats/su
 `stories/build.py` is a small stand-in for [Tweego](https://www.motoslave.net/tweego/); Tweego works too.
 SugarCube is by Thomas Michael Edwards, under its own license (`stories/formats/sugarcube-2.37.3/LICENSE`).
 
+## Brand styling
+
+`assets/mss.css` holds the brand colors and fonts for every game, story and page on the site.
+Change them there, once. Fonts are ITC American Typewriter from Adobe Fonts, loaded by each page.
+
 ## How to play
 
 **In a browser:** open the game's `index.html` file. That's it.

@@ -1,0 +1,35 @@
+/* My Strategy Squad: shared brand stylesheet for play.mystrategysquad.com.
+   Change colors and fonts HERE; every game, story and page picks them up.
+   Brand colors: Andrew, October 19, 2026. Neutrals: suggested, pending Andrew's choice.
+   Fonts: ITC American Typewriter via Adobe Fonts (kit wyx7llq), loaded by each page.
+   Code: MIT license. The My Strategy Squad name, logo and symbols are not covered. */
+:root{
+  /* Brand */
+  --mss-blue:#01C2FE;
+  --mss-purple:#FF25FF;
+  --mss-lava-orange:#EF8E00;
+  --mss-lava-red:#E54E1B;
+  /* Neutrals (pending decision) */
+  --mss-dark:#14161F;
+  --mss-panel:#17191F;
+  --mss-cream:#FFF1E8;
+  --mss-muted:#BFC3CE;
+  /* Roles used by the games and stories */
+  --bg:var(--mss-dark);
+  --panel:var(--mss-panel);
+  --ink:var(--mss-cream);
+  --dim:var(--mss-muted);
+  --gold:var(--mss-blue);          /* headings and key numbers */
+  --blue:var(--mss-lava-orange);   /* links, card outlines */
+  --orange:var(--mss-lava-orange);
+  --purple:var(--mss-purple);
+  --bad:var(--mss-lava-red);
+  --good:#00E436;                  /* "it worked" signal; not a brand color */
+  /* Type */
+  --font-body:"itc-american-typewriter","American Typewriter","Courier New",ui-monospace,monospace;
+  --font-head:"itc-american-typewriter","American Typewriter","Courier New",ui-monospace,monospace;
+}
+html,body{font-family:var(--font-body);font-weight:300;background:var(--bg);color:var(--ink)}
+h1,h2,h3,b,strong,button,.go{font-family:var(--font-head);font-weight:700}
+a:hover,a:focus{color:var(--purple)}
+:focus-visible{outline:3px solid var(--purple);outline-offset:2px}
