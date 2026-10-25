@@ -1,8 +1,16 @@
 /* My Strategy Squad: shared brand stylesheet for play.mystrategysquad.com.
    Change colors and fonts HERE; every game, story and page picks them up.
    Brand colors: Andrew, October 19, 2026. Neutrals: suggested, pending Andrew's choice.
-   Fonts: ITC American Typewriter via Adobe Fonts (kit wyx7llq), loaded by each page.
+   Fonts: ITC American Typewriter via Adobe Fonts (kit wyx7llq), loaded by each page, for words.
+   Pixelify Sans (SIL Open Font License, assets/fonts/PixelifySans-OFL.txt), self-hosted, for play:
+   titles, headings and buttons. Decided by Andrew, October 25, 2026.
    Code: MIT license. The My Strategy Squad name, logo and symbols are not covered. */
+@font-face{
+  font-family:"Pixelify Sans";
+  src:url("fonts/PixelifySans.ttf") format("truetype");
+  font-weight:400 700;
+  font-display:swap;
+}
 :root{
   /* Brand */
   --mss-blue:#01C2FE;
@@ -28,8 +36,11 @@
   /* Type */
   --font-body:"itc-american-typewriter","American Typewriter","Courier New",ui-monospace,monospace;
   --font-head:"itc-american-typewriter","American Typewriter","Courier New",ui-monospace,monospace;
+  --font-title:"Pixelify Sans","itc-american-typewriter","American Typewriter",ui-monospace,monospace;
 }
 html,body{font-family:var(--font-body);font-weight:300;background:var(--bg);color:var(--ink)}
 h1,h2,h3,b,strong,button,.go{font-family:var(--font-head);font-weight:700}
+/* Play font: titles, headings and buttons. Ligatures off: Pixelify's "fi" looks like a capital A. */
+h1,h2,button,.go{font-family:var(--font-title);font-weight:600;font-variant-ligatures:none;letter-spacing:.02em}
 a:hover,a:focus{color:var(--purple)}
 :focus-visible{outline:3px solid var(--purple);outline-offset:2px}

@@ -111,12 +111,17 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
 #story { margin-left: 18em; }
 #ui-bar { background: var(--panel); border-right: 4px solid var(--ink); color: var(--ink); }
 #ui-bar a, #story a, .macro-link { color: var(--blue); }
-#story a:hover, .macro-link:hover { color: var(--gold); text-decoration: none; }
+#story a:hover, .macro-link:hover { color: var(--mss-purple); text-decoration: none; }
 #passages { max-width: 38rem; }
 .passage { border: 4px solid var(--ink); background: var(--panel); padding: 16px 20px; }
 h1, h2, h3 { color: var(--gold); font-family: inherit; }
+h1, h2 { font-family: var(--font-title); font-weight: 600; font-variant-ligatures: none; }
+/* MSS signature: the blue-to-purple gradient (Andrew, October 24, 2026). Large headings only. */
+h1, h2 { background: linear-gradient(90deg, var(--mss-blue), var(--mss-purple)); -webkit-background-clip: text; background-clip: text; color: transparent; display: table; }
+h1::after { content: ""; display: block; height: 4px; margin-top: 6px; background: linear-gradient(90deg, var(--mss-blue), var(--mss-purple)); }
 .cap-label { display:block; color: var(--dim); font-size: .8rem; margin-top: .8em; text-transform: uppercase; letter-spacing: .05em; }
-.cap-hours, .cap-day { display:block; color: var(--gold); font-size: 1.2rem; }
+.cap-hours { display:block; color: var(--gold); font-size: 1.2rem; }
+.cap-day { display:block; color: var(--mss-purple); font-size: 1.2rem; }
 .speech { border-left: 4px solid var(--orange); padding-left: 10px; margin: 10px 0; }
 .clue { border: 2px dashed var(--blue); padding: 8px 10px; margin: 12px 0; font-size: .95rem; }
 .tag { display:inline-block; padding: 0 6px; margin-right: 6px; font-size: .8rem; text-transform: uppercase; color: var(--bg); }
@@ -127,10 +132,10 @@ h1, h2, h3 { color: var(--gold); font-family: inherit; }
 .choices li { margin: .4em 0; }
 .done { color: var(--dim); text-decoration: line-through; }
 .greyed { color: var(--dim); }
-.box { border: 2px solid var(--gold); padding: 10px 12px; margin: 12px 0; }
+.box { border: 2px solid var(--mss-purple); padding: 10px 12px; margin: 12px 0; }
 #ui-dialog { background: var(--panel); border: 4px solid var(--ink); color: var(--ink); }
 #ui-dialog-titlebar { background: var(--bg); border-bottom: 2px solid var(--ink); }
-#ui-dialog-title { color: var(--gold); font-family: var(--font-head); }
+#ui-dialog-title { color: var(--mss-purple); font-family: var(--font-head); }
 #ui-dialog-close { color: var(--ink); }
 #ui-dialog-body { background: var(--panel); font-family: var(--font-head); }
 #ui-dialog-body .tag-fact, .passage .tag-fact { background: var(--good) !important; color: var(--bg) !important; }
@@ -144,6 +149,38 @@ setup.day = function (h) {
   if (h > 2) { return "Wednesday"; }
   return "Thursday";
 };
+/* The four stories a player can write on Wednesday evening. */
+setup.storyName = {
+  chain: "The new chain café is stealing customers",
+  prices: "The prices are too high",
+  welcome: "The welcome has slipped on Saturdays",
+  location: "People aren't passing the door anymore"
+};
+/* What in the notebook supports or cuts against each story. Only places the player looked count. */
+setup.evidence = function (story, seen, cart) {
+  var has = function (p) { return seen.indexOf(p) !== -1; };
+  var f = [], a = [];
+  if (story === "chain") {
+    if (has("Florist")) { f.push({ text: "The florist says everyone's going there.", tag: "rumor" }); }
+    if (has("Chain")) { a.push({ text: "Its crowd is mostly students and laptops, not Marisol's commuters.", tag: "fact" }); }
+    if (has("Till")) { a.push({ text: "Weekdays are steady. A rival would take weekday trade too.", tag: "fact" }); }
+  } else if (story === "prices") {
+    if (has("Prices")) { f.push({ text: "Prices did go up, by 30 cents.", tag: "fact" }); a.push({ text: "Sales held for months after the rise. The drop started three weeks ago.", tag: "fact" }); }
+    if (has("Till")) { a.push({ text: "Weekdays, at the same prices, are steady.", tag: "fact" }); }
+  } else if (story === "welcome") {
+    if (has("Staff")) { f.push({ text: "Ana says Saturdays feel flat, and people chat less.", tag: "opinion" }); }
+    if (has("Till")) { a.push({ text: "The drop is a third of Saturday trade, and it started suddenly. That's a lot for one quiet barista.", tag: "fact" }); }
+  } else if (story === "location") {
+    if (has("Station")) { f.push({ text: "The station exit onto Marisol's street has been closed for three weeks.", tag: "fact" }); }
+    if (has("Corner")) { f.push({ text: "Almost nobody walked down the street from the station at rush hour.", tag: "fact" }); }
+    if (has("Regulars")) { f.push({ text: "A regular now walks \"the long way round\" from the station.", tag: "fact" }); }
+    if (has("Till")) { f.push({ text: "The drop is Saturday mornings, when the market crowd arrives by train.", tag: "fact" }); }
+  }
+  if (cart && (story === "location" || story === "chain")) {
+    (story === "location" ? f : a).push({ text: "At the west exit cart, Marisol's missing customers turned up. They couldn't find her.", tag: "fact" });
+  }
+  return { supports: f, against: a };
+};
 /* Each place you can look: hours it costs. */
 setup.cost = {
   "Till": 3, "Regulars": 4, "Chain": 4, "Corner": 4,
@@ -156,11 +193,11 @@ setup.cost = {
 &lt;span class="cap-label"&gt;Hours left&lt;/span&gt;
 &lt;span class="cap-hours"&gt;&lt;&lt;= $hours&gt;&gt; of 20&lt;/span&gt;
 &lt;span class="cap-label"&gt;Day&lt;/span&gt;
-&lt;span class="cap-day"&gt;&lt;&lt;= setup.day($hours)&gt;&gt;&lt;/span&gt;
+&lt;span class="cap-day"&gt;&lt;&lt;if tags().includes("friday")&gt;&gt;Friday&lt;&lt;elseif tags().includes("thursday")&gt;&gt;Thursday&lt;&lt;elseif tags().includes("wednesday")&gt;&gt;Wednesday&lt;&lt;else&gt;&gt;&lt;&lt;= setup.day($hours)&gt;&gt;&lt;&lt;/if&gt;&gt;&lt;/span&gt;
 &lt;span class="cap-label"&gt;Notebook&lt;/span&gt;
 &lt;&lt;link "Read it (&lt;&lt;= $notebook.length&gt;&gt;)"&gt;&gt;&lt;&lt;run Dialog.create("Marisol's notebook").wikiPassage("Notebook").open()&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="3" name="StoryWidgets" tags="widget" position="300,100" size="100,100">&lt;&lt;widget "newstory"&gt;&gt;\
-&lt;&lt;set $hours to 20&gt;&gt;&lt;&lt;set $notebook to []&gt;&gt;&lt;&lt;set $seen to []&gt;&gt;&lt;&lt;set $sizeup to 0&gt;&gt;&lt;&lt;set $stories to []&gt;&gt;&lt;&lt;set $tested to false&gt;&gt;\
+&lt;&lt;set $hours to 20&gt;&gt;&lt;&lt;set $notebook to []&gt;&gt;&lt;&lt;set $seen to []&gt;&gt;&lt;&lt;set $sizeup to 0&gt;&gt;&lt;&lt;set $stories to []&gt;&gt;&lt;&lt;set $tested to false&gt;&gt;&lt;&lt;set $working to ""&gt;&gt;&lt;&lt;set $test to ""&gt;&gt;&lt;&lt;set $cart to false&gt;&gt;&lt;&lt;set $plan to ""&gt;&gt;\
 &lt;&lt;/widget&gt;&gt;
 
 &lt;&lt;widget "clue"&gt;&gt;\
@@ -185,7 +222,7 @@ You're her squad. You have until Friday morning.
 &lt;ul class="choices"&gt;
 &lt;li&gt;[[Agree. Start planning the fight back.|Fight back]]&lt;/li&gt;
 &lt;li&gt;[[“Maybe. Let's find out what's really going on first.”|The notebook]]&lt;/li&gt;
-&lt;/ul&gt;</tw-passagedata><tw-passagedata pid="5" name="Fight back" tags="" position="500,100" size="100,100">&lt;h2&gt;Friday&lt;/h2&gt;\
+&lt;/ul&gt;</tw-passagedata><tw-passagedata pid="5" name="Fight back" tags="friday" position="500,100" size="100,100">&lt;h2&gt;Friday&lt;/h2&gt;\
 You and Marisol spend the week on a price cut and a loyalty card. Coffee drops by 50 cents. The cards are lovely: a little gold knight on each one.
 
 Saturdays stay flat.
@@ -199,7 +236,7 @@ The chain café two streets over never notices any of this.
 
 Want to see what was really going on? There's a different story hiding in this café.
 &lt;/div&gt;\
-&lt;&lt;link "Start again" "Start"&gt;&gt;&lt;&lt;newstory&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="6" name="The notebook" tags="" position="600,100" size="100,100">"Fine," says Marisol, and hands you a battered notebook. "Write it all down, then. I'll keep making flat whites."
+[[Debrief|Debrief]]</tw-passagedata><tw-passagedata pid="6" name="The notebook" tags="" position="600,100" size="100,100">"Fine," says Marisol, and hands you a battered notebook. "Write it all down, then. I'll keep making flat whites."
 
 &lt;div class="box"&gt;\
 &lt;b&gt;How this works&lt;/b&gt;
@@ -317,11 +354,11 @@ You walk out of the west exit and look around. From here, Marisol's café is out
 
 &lt;&lt;set $sizeup += 2&gt;&gt;\
 &lt;&lt;clue "The station's east exit, onto Marisol's street, has been closed for about three weeks. It reopens in about six weeks." "fact"&gt;&gt;\
-[[Back to the notebook|Look around]]</tw-passagedata><tw-passagedata pid="16" name="Wednesday evening" tags="" position="1600,100" size="100,100">&lt;h2&gt;Wednesday evening&lt;/h2&gt;\
+[[Back to the notebook|Look around]]</tw-passagedata><tw-passagedata pid="16" name="Wednesday evening" tags="wednesday" position="1600,100" size="100,100">&lt;h2&gt;Wednesday evening&lt;/h2&gt;\
 The café is closed. Marisol puts two cups of tea on the table, and you open the notebook.
 
 &lt;&lt;if $notebook.length is 0&gt;&gt;\
-It's empty. Marisol raises an eyebrow.
+It's empty. Marisol raises an eyebrow. "So we're guessing, then."
 &lt;&lt;else&gt;&gt;\
 You found &lt;b&gt;&lt;&lt;= $notebook.length&gt;&gt;&lt;/b&gt; &lt;&lt;= $notebook.length is 1 ? "clue" : "clues"&gt;&gt;:
 
@@ -329,11 +366,204 @@ You found &lt;b&gt;&lt;&lt;= $notebook.length&gt;&gt;&lt;/b&gt; &lt;&lt;= $noteb
 &lt;&lt;/if&gt;&gt;
 
 &lt;div class="box"&gt;\
-&lt;b&gt;This is as far as the story goes for now.&lt;/b&gt; Next comes the hard part: writing three stories about what's really going on, finding the weakest link, and testing it cheaply before Friday.
-
-Before you go, look at your notebook. How many of your clues are facts? Which one surprised you? And which one would you have believed, if you'd only had a minute?
+&lt;b&gt;Step two of the Size-Up: write three stories.&lt;/b&gt; Don't pick an answer yet. Write down three different explanations that could fit what you've seen, and then see which one the notebook backs.
 &lt;/div&gt;\
-&lt;&lt;link "Start again" "Start"&gt;&gt;&lt;&lt;newstory&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="17" name="Notebook" tags="" position="1700,100" size="100,100">&lt;&lt;if $notebook.length is 0&gt;&gt;Nothing yet. Go and look around.&lt;&lt;else&gt;&gt;\
+&lt;&lt;if $seen.includes("Station") or $seen.includes("Corner") or $seen.includes("Regulars")&gt;&gt;\
+Looking at the notebook, you can think of four stories. There's room for three on the page. Which one do you leave out?
+
+&lt;ul class="choices"&gt;
+&lt;&lt;for _k range ["chain", "prices", "welcome", "location"]&gt;&gt;\
+&lt;li&gt;&lt;&lt;capture _k&gt;&gt;&lt;&lt;link `"Leave out: " + setup.storyName[_k]` "Weigh the stories"&gt;&gt;&lt;&lt;set $stories to ["chain", "prices", "welcome", "location"].filter(function (x) { return x !== _k; })&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;&lt;/capture&gt;&gt;&lt;/li&gt;
+&lt;&lt;/for&gt;&gt;\
+&lt;/ul&gt;
+&lt;&lt;else&gt;&gt;\
+Your notebook gives you three stories:
+
+&lt;ul&gt;
+&lt;li&gt;The new chain café is stealing customers.&lt;/li&gt;
+&lt;li&gt;The prices are too high.&lt;/li&gt;
+&lt;li&gt;The welcome has slipped on Saturdays.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;span class="greyed"&gt;Keep a little belief in your pocket for a story you haven't thought of yet.&lt;/span&gt;
+
+&lt;&lt;link "Write them down" "Weigh the stories"&gt;&gt;&lt;&lt;set $stories to ["chain", "prices", "welcome"]&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="17" name="Weigh the stories" tags="wednesday" position="1700,100" size="100,100">&lt;h2&gt;What backs each story?&lt;/h2&gt;\
+For each story, here's what's in the notebook for it, and against it. A story is only as strong as its weakest link.
+
+&lt;&lt;for _st range $stories&gt;&gt;\
+&lt;&lt;set _ev to setup.evidence(_st, $seen, $cart)&gt;&gt;\
+&lt;div class="box"&gt;\
+&lt;b&gt;&lt;&lt;= setup.storyName[_st]&gt;&gt;&lt;/b&gt;
+&lt;span class="cap-label"&gt;For&lt;/span&gt;\
+&lt;&lt;if _ev.supports.length is 0&gt;&gt;&lt;span class="greyed"&gt;Nothing in the notebook yet.&lt;/span&gt;&lt;&lt;else&gt;&gt;&lt;&lt;for _c range _ev.supports&gt;&gt;&lt;div class="clue"&gt;&lt;span @class="'tag tag-' + _c.tag"&gt;&lt;&lt;= _c.tag&gt;&gt;&lt;/span&gt; &lt;&lt;= _c.text&gt;&gt;&lt;/div&gt;&lt;&lt;/for&gt;&gt;&lt;&lt;/if&gt;&gt;
+&lt;span class="cap-label"&gt;Against&lt;/span&gt;\
+&lt;&lt;if _ev.against.length is 0&gt;&gt;&lt;span class="greyed"&gt;Nothing in the notebook cuts against it.&lt;/span&gt;&lt;&lt;else&gt;&gt;&lt;&lt;for _c range _ev.against&gt;&gt;&lt;div class="clue"&gt;&lt;span @class="'tag tag-' + _c.tag"&gt;&lt;&lt;= _c.tag&gt;&gt;&lt;/span&gt; &lt;&lt;= _c.text&gt;&gt;&lt;/div&gt;&lt;&lt;/for&gt;&gt;&lt;&lt;/if&gt;&gt;
+&lt;/div&gt;\
+&lt;&lt;/for&gt;&gt;\
+Which story do you work with? You can change your mind later. That's the point.
+
+&lt;ul class="choices"&gt;
+&lt;&lt;for _st range $stories&gt;&gt;\
+&lt;li&gt;&lt;&lt;capture _st&gt;&gt;&lt;&lt;link `setup.storyName[_st]` "Weakest link"&gt;&gt;&lt;&lt;set $working to _st&gt;&gt;&lt;&lt;if _st is "location"&gt;&gt;&lt;&lt;set $sizeup += 2&gt;&gt;&lt;&lt;/if&gt;&gt;&lt;&lt;if setup.evidence(_st, $seen, false).supports.some(function (c) { return c.tag === "fact"; })&gt;&gt;&lt;&lt;set $sizeup += 1&gt;&gt;&lt;&lt;/if&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;&lt;/capture&gt;&gt;&lt;/li&gt;
+&lt;&lt;/for&gt;&gt;\
+&lt;/ul&gt;</tw-passagedata><tw-passagedata pid="18" name="Weakest link" tags="wednesday" position="1800,100" size="100,100">&lt;h2&gt;The weakest link&lt;/h2&gt;\
+Your working story: &lt;b&gt;&lt;&lt;= setup.storyName[$working]&gt;&gt;&lt;/b&gt;.
+
+&lt;&lt;if $working is "location"&gt;&gt;\
+You know fewer people are walking past the door. What you don't know is whether the missing customers still want Marisol's coffee. Maybe they've just given up coffee.
+
+&lt;div class="box"&gt;&lt;b&gt;Cheapest check:&lt;/b&gt; run a coffee cart at the station's west exit for one morning, and see who turns up.&lt;/div&gt;\
+&lt;&lt;elseif $working is "chain"&gt;&gt;\
+Is anyone actually leaving Marisol for the chain? &lt;&lt;if $seen.includes("Florist")&gt;&gt;So far you have the florist's cousin's word for it.&lt;&lt;else&gt;&gt;So far, nobody has said so.&lt;&lt;/if&gt;&gt;
+
+&lt;div class="box"&gt;&lt;b&gt;Cheapest check:&lt;/b&gt; the chain is right outside the station's west exit. Run a coffee cart there for one morning. If Marisol's crowd is going to the chain, they'll walk straight past her cart.&lt;/div&gt;\
+&lt;&lt;elseif $working is "prices"&gt;&gt;\
+If price is the problem, then cheaper coffee should bring people back. Would it?
+
+&lt;div class="box"&gt;&lt;b&gt;Cheapest check:&lt;/b&gt; put last year's prices back for one day, and compare the takings with last week.&lt;/div&gt;\
+&lt;&lt;else&gt;&gt;\
+If the welcome is the problem, it should show when someone walks in. Does it?
+
+&lt;div class="box"&gt;&lt;b&gt;Cheapest check:&lt;/b&gt; ask a friend to come in as a mystery customer and tell you honestly how it felt.&lt;/div&gt;\
+&lt;&lt;/if&gt;&gt;\
+&lt;span class="greyed"&gt;And keep a little belief in your pocket for the story you haven't thought of yet.&lt;/span&gt;
+
+[[On to Thursday|Thursday]]</tw-passagedata><tw-passagedata pid="19" name="Thursday" tags="thursday" position="1900,100" size="100,100">&lt;h2&gt;Thursday&lt;/h2&gt;\
+The last day before the meeting. You have &lt;b&gt;&lt;&lt;= $hours&gt;&gt; &lt;&lt;= $hours is 1 ? "hour" : "hours"&gt;&gt;&lt;/b&gt; left. A test takes 2.
+
+&lt;&lt;if $hours &lt; 2&gt;&gt;\
+You spent all your hours looking. There's no time left to test anything. Lots of clues and no time to check them is a common way to run out of road.
+
+[[On to Friday|Friday]]
+&lt;&lt;else&gt;&gt;\
+&lt;ul class="choices"&gt;
+&lt;li&gt;[[Run a coffee cart at the station's west exit, 7 to 10 a.m.|Test: Cart]]&lt;/li&gt;
+&lt;li&gt;[[Ask a friend to come in as a mystery customer|Test: Mystery]]&lt;/li&gt;
+&lt;li&gt;[[Put last year's prices back for the day|Test: Prices]]&lt;/li&gt;
+&lt;li&gt;[[Skip the test. Go with your gut.|Friday]]&lt;/li&gt;
+&lt;/ul&gt;
+&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="20" name="Test: Cart" tags="thursday" position="2000,100" size="100,100">&lt;&lt;set $hours -= 2&gt;&gt;&lt;&lt;set $test to "cart"&gt;&gt;&lt;&lt;set $cart to true&gt;&gt;\
+&lt;&lt;if $working is "location" or $working is "chain"&gt;&gt;&lt;&lt;set $tested to true&gt;&gt;&lt;&lt;set $sizeup += 2&gt;&gt;&lt;&lt;else&gt;&gt;&lt;&lt;set $sizeup += 1&gt;&gt;&lt;&lt;/if&gt;&gt;\
+&lt;h2&gt;The cart&lt;/h2&gt;\
+Marisol borrows a cart from her cousin. You set it up at the west exit at seven.
+
+By half past eight, you're out of milk.
+
+Half the faces in the queue are ones Marisol knows. "Oh! You're the café round the corner," says one man. "We couldn't find you since they shut the other exit. Thought you'd closed."
+
+Nobody mentions the chain café, even though it's right there.
+
+&lt;&lt;clue "At the west exit cart, Marisol's missing customers turned up. They couldn't find her since the exit closed." "fact"&gt;&gt;\
+&lt;&lt;if $working is "chain"&gt;&gt;&lt;div class="box"&gt;Your working story was the chain. The cart just told you something different. That's what a cheap test is for: finding out before Friday, not after.&lt;/div&gt;&lt;&lt;/if&gt;&gt;\
+[[On to Friday|Friday]]</tw-passagedata><tw-passagedata pid="21" name="Test: Mystery" tags="thursday" position="2100,100" size="100,100">&lt;&lt;set $hours -= 2&gt;&gt;&lt;&lt;set $test to "mystery"&gt;&gt;\
+&lt;&lt;if $working is "welcome"&gt;&gt;&lt;&lt;set $tested to true&gt;&gt;&lt;&lt;set $sizeup += 2&gt;&gt;&lt;&lt;else&gt;&gt;&lt;&lt;set $sizeup += 1&gt;&gt;&lt;&lt;/if&gt;&gt;\
+&lt;h2&gt;The mystery customer&lt;/h2&gt;\
+Marisol asks Keith to cover the morning, and your friend Dev comes in at nine.
+
+His report: "Coffee was excellent. The guy behind the counter didn't look up once. Then an older woman, Ana I think, came over and asked how my week was going. Nice place. Bit quiet."
+
+So the welcome has slipped a little when Keith is on his own. But a quiet barista doesn't explain why a third of Saturday mornings vanished, three weeks ago, all at once.
+
+&lt;&lt;clue "Keith is quiet with customers; Ana makes up for it. Worth fixing, but too small to explain the drop." "fact"&gt;&gt;\
+[[On to Friday|Friday]]</tw-passagedata><tw-passagedata pid="22" name="Test: Prices" tags="thursday" position="2200,100" size="100,100">&lt;&lt;set $hours -= 2&gt;&gt;&lt;&lt;set $test to "prices"&gt;&gt;\
+&lt;&lt;if $working is "prices"&gt;&gt;&lt;&lt;set $tested to true&gt;&gt;&lt;&lt;set $sizeup += 2&gt;&gt;&lt;&lt;else&gt;&gt;&lt;&lt;set $sizeup += 1&gt;&gt;&lt;&lt;/if&gt;&gt;\
+&lt;h2&gt;Old prices&lt;/h2&gt;\
+Marisol writes last year's prices on the board.
+
+At closing, you compare the takings with last Thursday. They're the same, almost to the dollar. Two regulars notice, and one asks if everything's all right.
+
+&lt;&lt;clue "With last year's prices back for a day, takings didn't change." "fact"&gt;&gt;\
+[[On to Friday|Friday]]</tw-passagedata><tw-passagedata pid="23" name="Friday" tags="friday" position="2300,100" size="100,100">&lt;h2&gt;Friday morning&lt;/h2&gt;\
+The meeting with the landlord is at ten. Marisol looks at you over the top of her cup. "Right. What do we do?"
+
+&lt;&lt;set _knowsplace to $seen.includes("Station") or $seen.includes("Corner") or $seen.includes("Regulars") or $cart&gt;&gt;\
+&lt;ul class="choices"&gt;
+&lt;li&gt;&lt;&lt;link "Cut prices and fight the chain" "End: Price war"&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/li&gt;
+&lt;&lt;if _knowsplace&gt;&gt;\
+&lt;li&gt;&lt;&lt;link "Run the cart at the west exit and put up signs until the works finish. Show the landlord the evidence and the reopening date." "End: Location"&gt;&gt;&lt;&lt;set $plan to "location"&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/li&gt;
+&lt;&lt;if $seen.includes("Staff") or $test is "mystery"&gt;&gt;\
+&lt;li&gt;&lt;&lt;link "All of that, and have a quiet word with Keith about the welcome" "End: Location"&gt;&gt;&lt;&lt;set $plan to "location+"&gt;&gt;&lt;&lt;set $sizeup += 1&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/li&gt;
+&lt;&lt;/if&gt;&gt;\
+&lt;&lt;/if&gt;&gt;\
+&lt;li&gt;&lt;&lt;link "Coach Keith on the welcome" "End: Wrong thing"&gt;&gt;&lt;&lt;set $plan to "welcome"&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/li&gt;
+&lt;li&gt;&lt;&lt;link "Put the old prices back" "End: Wrong thing"&gt;&gt;&lt;&lt;set $plan to "prices"&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/li&gt;
+&lt;li&gt;&lt;&lt;link "Do nothing. Saturday might pick up." "End: Worry"&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/li&gt;
+&lt;/ul&gt;</tw-passagedata><tw-passagedata pid="24" name="End: Price war" tags="friday" position="2400,100" size="100,100">&lt;h2&gt;Ending: Price war&lt;/h2&gt;\
+Coffee drops by 50 cents. The new loyalty cards have a little gold knight on each one.
+
+Saturdays stay flat. Every cup now earns less, so the weekdays thin out too. When the landlord asks how business is, Marisol says "competitive," and he hears "struggling."
+
+The chain café two streets over never notices.
+
+&lt;div class="box"&gt;\
+You blamed the loudest explanation and acted on it. &lt;&lt;if $seen.includes("Station")&gt;&gt;The notebook already held the station clue. The answer was in your hands, and the story you'd already settled on talked over it.&lt;&lt;else&gt;&gt;The real cause never made it into the notebook.&lt;&lt;/if&gt;&gt;
+&lt;/div&gt;\
+[[Debrief|Debrief]]</tw-passagedata><tw-passagedata pid="25" name="End: Location" tags="friday" position="2500,100" size="100,100">&lt;&lt;set _evidence to $seen.includes("Station") or $seen.includes("Corner") or $cart&gt;&gt;\
+&lt;&lt;if _evidence and $cart&gt;&gt;\
+&lt;h2&gt;Ending: Sized up&lt;/h2&gt;\
+Marisol walks into the meeting with your notebook and a photo of the queue at the cart.
+
+"Saturday mornings are down because the exit's shut," she says. "It reopens in six weeks. Until then, I'm running a cart where the people are."
+
+The landlord looks at the photo for a long time. He renews for the same rent. Then he asks whether the cart could do mornings in the lobby of his other building.
+
+&lt;div class="box"&gt;\
+You found facts, wrote more than one story, checked the weakest link cheaply, and acted on what you learned. That's the Size-Up.&lt;&lt;if $plan is "location+"&gt;&gt; And you didn't ignore the smaller problem: Keith's having a quiet word with Ana about the welcome.&lt;&lt;/if&gt;&gt;
+&lt;/div&gt;\
+&lt;&lt;elseif _evidence&gt;&gt;\
+&lt;h2&gt;Ending: Good call, untested&lt;/h2&gt;\
+Marisol puts up signs at the west exit and runs the cart on Saturday. It works: the market crowd finds her again. She tells the landlord about the exit and the reopening date, and he renews.
+
+&lt;div class="box"&gt;\
+Your facts pointed the right way, and you acted on them. But you never checked the weakest link: whether the missing customers still wanted Marisol's coffee. This time they did. A two-hour test on Thursday would have turned a good guess into something she could show the landlord.
+&lt;/div&gt;\
+&lt;&lt;else&gt;&gt;\
+&lt;h2&gt;Ending: Right answer, wrong reason&lt;/h2&gt;\
+Marisol runs the cart and puts up signs. Saturdays pick up. She tells the landlord it's "the station, probably," and he renews.
+
+&lt;div class="box"&gt;\
+It worked out. But all you had was one regular's remark about walking the long way round. Judging a decision by how it turned out is called resulting. Ask yourself: would you bet the café on that reasoning again?
+&lt;/div&gt;\
+&lt;&lt;/if&gt;&gt;\
+[[Debrief|Debrief]]</tw-passagedata><tw-passagedata pid="26" name="End: Wrong thing" tags="friday" position="2600,100" size="100,100">&lt;h2&gt;Ending: Fixing the wrong thing&lt;/h2&gt;\
+&lt;&lt;if $plan is "welcome"&gt;&gt;\
+Keith gets a pep talk and a name badge. He even smiles at people. It helps a little.
+&lt;&lt;else&gt;&gt;\
+The old prices go back on the board. A few regulars are pleased.
+&lt;&lt;/if&gt;&gt;\
+Saturday mornings stay a third down. When the landlord asks why, Marisol doesn't really know.
+
+&lt;div class="box"&gt;\
+You fixed something real, but small. The big drop is still a mystery, and it will stay one for six weeks, until the station exit quietly reopens and nobody knows why things got better.
+&lt;/div&gt;\
+[[Debrief|Debrief]]</tw-passagedata><tw-passagedata pid="27" name="End: Worry" tags="friday" position="2700,100" size="100,100">&lt;h2&gt;Ending: Nothing but worry&lt;/h2&gt;\
+Marisol goes into the meeting with nothing but worry. The landlord asks how business is. She says, "Fine." He doesn't believe her, and the new lease comes back with a higher rent.
+
+&lt;div class="box"&gt;\
+Doing nothing is a choice too. With nothing to show him, Marisol had nothing to bargain with.
+&lt;/div&gt;\
+[[Debrief|Debrief]]</tw-passagedata><tw-passagedata pid="28" name="Debrief" tags="friday" position="2800,100" size="100,100">&lt;h2&gt;Debrief&lt;/h2&gt;\
+&lt;&lt;set _facts to $notebook.filter(function (c) { return c.tag === "fact"; }).length&gt;&gt;\
+&lt;&lt;set _rumors to $notebook.filter(function (c) { return c.tag === "rumor"; }).length&gt;&gt;\
+&lt;&lt;if $notebook.length is 0&gt;&gt;Your notebook was empty.&lt;&lt;else&gt;&gt;Your notebook: &lt;b&gt;&lt;&lt;= $notebook.length&gt;&gt;&lt;/b&gt; &lt;&lt;= $notebook.length is 1 ? "clue" : "clues"&gt;&gt;, &lt;b&gt;&lt;&lt;= _facts&gt;&gt;&lt;/b&gt; of them &lt;&lt;= _facts is 1 ? "a fact" : "facts"&gt;&gt;&lt;&lt;if _rumors &gt; 0&gt;&gt;, and &lt;&lt;= _rumors&gt;&gt; &lt;&lt;= _rumors is 1 ? "rumor" : "rumors"&gt;&gt;&lt;&lt;/if&gt;&gt;.&lt;&lt;/if&gt;&gt; &lt;&lt;if $seen.includes("Station")&gt;&gt;You found the station.&lt;&lt;else&gt;&gt;You never walked to the station.&lt;&lt;/if&gt;&gt; &lt;&lt;if $test is ""&gt;&gt;You didn't test anything.&lt;&lt;elseif $tested&gt;&gt;You tested your working story's weakest link.&lt;&lt;else&gt;&gt;You ran a test, but not on your working story.&lt;&lt;/if&gt;&gt;
+
+&lt;ol&gt;
+&lt;li&gt;What did you expect?&lt;/li&gt;
+&lt;li&gt;What actually happened?&lt;/li&gt;
+&lt;li&gt;Why the gap?&lt;/li&gt;
+&lt;li&gt;What would you change?&lt;/li&gt;
+&lt;li&gt;What does this story get wrong about real life?&lt;/li&gt;
+&lt;/ol&gt;
+And one for this story: &lt;b&gt;which clue changed your mind, and was it a fact, an opinion or a rumor?&lt;/b&gt;
+
+&lt;div class="box"&gt;\
+&lt;b&gt;Take it home.&lt;/b&gt; Next time something goes wrong in your work, try the Size-Up. Say what you see, facts only. Write three stories: the one you reached for, the one you'd rather weren't true, and someone else's. Find each story's weakest link and the cheapest way to check it this week.
+&lt;/div&gt;\
+&lt;span class="greyed"&gt;In real life, clues don't arrive neatly labeled, and you rarely get a cart and a mystery customer for two hours each. The thinking still holds.&lt;/span&gt;
+
+&lt;span class="greyed"&gt;Ideas behind this story: Richard Rumelt on asking "What's going on here?"; John Kay and Mervyn King on puzzles and mysteries, and on reference narratives (&lt;i&gt;Radical Uncertainty&lt;/i&gt;, 2020); Kevin Clermont on weighing stories (2020). From the My Strategy Squad podcast, Episodes 5 and 10.&lt;/span&gt;
+
+&lt;&lt;link "Play again" "Start"&gt;&gt;&lt;&lt;newstory&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="29" name="Notebook" tags="" position="2900,100" size="100,100">&lt;&lt;if $notebook.length is 0&gt;&gt;Nothing yet. Go and look around.&lt;&lt;else&gt;&gt;\
 &lt;&lt;for _c range $notebook&gt;&gt;&lt;div class="clue"&gt;&lt;span @class="'tag tag-' + _c.tag"&gt;&lt;&lt;= _c.tag&gt;&gt;&lt;/span&gt; &lt;&lt;= _c.text&gt;&gt;&lt;/div&gt;&lt;&lt;/for&gt;&gt;\
 &lt;&lt;/if&gt;&gt;</tw-passagedata></tw-storydata>
 	<script id="script-sugarcube" type="text/javascript">
